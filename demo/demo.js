@@ -36,68 +36,126 @@ var sndTo = 'control?cmd=SendTo,';
 var tvSet = 'control?cmd=taskvalueset,';
 var evnT = 'control?cmd=event,';
 var ntfyJson;
+var ntfyChannel = '';
+var selectVal;
 
-function addChan(x) {
-    x.classList.toggle("change");
+function addChan() {
     if (document.getElementById('inputChannel').offsetHeight === 0) {
         document.getElementById("inputChannel").style.height = "150px";
-        document.getElementById("inputChannel").style.height = "150px";
-    } else { document.getElementById("inputChannel").style.height = "0"; }
+        document.getElementById('addBtn').classList.add("change");
+        enterLastinput()
+    } else { closeAddChan() }
+}
+function closeAddChan() {
+    document.getElementById("inputChannel").style.height = "0"; document.getElementById('addBtn').classList.remove("change");
 }
 function submitChan() {
     chanName = document.getElementById("channelNa").value;
     chanNumber = document.getElementById("channelNr").value;
     if (chanName && chanNumber) {
-        console.log('ntfy_' + chanName, chanNumber);
-        Cookies.set('ntfy_' + chanName, chanNumber, { expires: 99999})
+        //console.log('ntfy_' + chanName, chanNumber);
+        //Cookies.set('ntfy_' + chanName, chanNumber, { expires: 99999})
+        document.cookie = "ntfy_" + chanName + "=" + chanNumber + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
         document.getElementById("inputChannel").style.height = "0";
         document.getElementById("channelNa").value = "";
         document.getElementById("channelNr").value = "";
     }
     generateChan()
+    closeAddChan()
+
 }
 
 function generateChan() {
-    console.log(Cookies.get());
+    cookieObj = str_obj(document.cookie);
     let html5 = '';
-    Object.entries(Cookies.get()).forEach(entry => {
+    Object.entries(cookieObj).forEach(entry => {
         const [key, value] = entry;
-        if (key.includes("ntfy_")){
+        if (key == "*selectedChannel") { selectVal = value };
+    });
+    Object.entries(cookieObj).forEach(entry => {
+        const [key, value] = entry;
+        if (key.includes("ntfy_")) {
             newkey = key.split("_")[1];
-                        html5 += '<div class="channelItem"><button class="buttonUnit" style="text-align: center;"><div id="' + newkey + '" onclick="sendUpdate();">' + newkey + '</div><div class="channelName">' + value + '</div></button><button onclick="delChan(\'' + key + '\')">Remove</button></div>';
-
-        console.log(newkey, value);
+            if (selectVal && value == selectVal) { btnselect = "chanBtnSelect" } else { btnselect = "" }
+            html5 += '<div class="channelItem"><button class="buttonUnit ' + btnselect + '" style="text-align: center;" onclick="setChannel(this);"><div class="chanName" id="' + newkey + '">' + newkey + '</div><div class="channelName">' + value + '</div></button><button class="remove" onclick="delChan(\'' + key + '\',\'' + value + '\')">-</button></div>';
         }
-      });
-      document.getElementById('channelList').innerHTML = html5;
+    });
+    document.getElementById('channelList').innerHTML = html5;
 }
 
-function delChan(name) {
-    console.log(name);
-    Cookies.remove(name);
+function str_obj(str) {
+    str = str.split('; ');
+    var result = {};
+    for (var i = 0; i < str.length; i++) {
+        var cur = str[i].split('=');
+        result[cur[0]] = cur[1];
+    }
+    return result;
+}
+
+function setChannel(data) {
+    ntfyChannel = data.children[1].textContent;
+    document.cookie = "*selectedChannel=" + ntfyChannel + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
+    chanBtns = document.querySelectorAll(".buttonUnit");
+    chanBtns.forEach(chanBtn => {
+        chanBtn.classList.remove("chanBtnSelect");
+    });
+    data.classList.add("chanBtnSelect");
+    splitOn()
+    fetchNtfy()
+}
+
+function delChan(name, value) {
+    console.log(name, value);
+    if (get_cookie(name)) {
+        document.cookie = name + "=" +
+            ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    }
+    if (value == selectVal) {
+        document.cookie = "*selectedChannel=" +
+            ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+    }
     generateChan()
 }
-
+function get_cookie(name) {
+    return document.cookie.split(';').some(c => {
+        return c.trim().startsWith(name + '=');
+    });
+}
+function enterLastinput() {
+    document.getElementById("channelNr").addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            submitChan();
+        }
+    });
+}
 
 async function fetchNtfy() {
-    //sendReady();
-    //setInterval(sendReady, 30000);
-
-    const eventSource = new EventSource('https://ntfy.sh/test2323_23/sse');
-    eventSource.onmessage = (e) => {
-        console.log(e.data);
-        if (JSON.parse(e.data).message) {
-            ntfyJson = JSON.parse(e.data).message;
-            console.log(JSON.parse(ntfyJson).System)
-            fetchJson(ntfyJson)
-            console.log("yes");
-        } else console.log("no");
-    };
+    cookieObj = str_obj(document.cookie);
+    Object.entries(cookieObj).forEach(entry => {
+        const [key, value] = entry;
+        if (key == "*selectedChannel") { ntfyChannel = value };
+    });
+    if (ntfyChannel) {
+        sendReady();
+        setInterval(sendReady, 30000);
+        const eventSource = new EventSource('https://ntfy.sh/' + ntfyChannel + '_json/sse');
+        eventSource.onmessage = (e) => {
+            console.log(e.data);
+            if (JSON.parse(e.data).message) {
+                ntfyJson = JSON.parse(e.data).message;
+                console.log(JSON.parse(ntfyJson).System)
+                fetchJson(ntfyJson)
+                console.log("yes");
+            } else console.log("no");
+        };
+    }
 }
 
 async function sendReady() {
     console.log("ready")
-    fetch("https://ntfy.sh/test2323_23_channel2?tags=123", {
+    fetch('https://ntfy.sh/' + ntfyChannel + '?tags=123', {
         method: 'POST',
         headers: {
             'Title': 'send',
@@ -674,38 +732,40 @@ function openSys() {
     }
 }
 function getNodes(utton, allNodes, hasIt) {
-    myJson = JSON.parse(ntfyJson);
-    if ((Date.now() - responseTime) < 5000) {
-        let html4 = '';
-        nInf = myJson.nodes;
-        let i = -1;
-        myJson.nodes.forEach(node => {
-            i++
-            if (node.nr == myParam) { if (hasParams) { nodeChange(i); hasParams = 0; } }
-            if (node.nr === unitNr1) { if (node.nr === unitNr) { styleN = "&#8857;&#xFE0E;"; } else { styleN = "&#8858;&#xFE0E;"; } }
-            else if (node.nr === unitNr) { styleN = "&#183;&#xFE0E;"; } else { styleN = ""; }
-            html4 += '<div class="menueItem"><div class="serverUnit" style="text-align: center;">' + styleN + '</div><div id="' + node.name + '" class="nc" onclick="sendUpdate(); nodeChange(' + i + ');iFr();">' + node.name + '<span class="numberUnit">' + node.nr + '</span></div></div>';
-            if (utton || allNodes) {
-                if (allNodes) {
-                    if (node.nr === unitNr1) { fetch(evnT + utton + 'Long'); }
-                    else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Long"'); }
+    if (ntfyJson) {
+        myJson = JSON.parse(ntfyJson);
+        if ((Date.now() - responseTime) < 5000) {
+            let html4 = '';
+            nInf = myJson.nodes;
+            let i = -1;
+            myJson.nodes.forEach(node => {
+                i++
+                if (node.nr == myParam) { if (hasParams) { nodeChange(i); hasParams = 0; } }
+                if (node.nr === unitNr1) { if (node.nr === unitNr) { styleN = "&#8857;&#xFE0E;"; } else { styleN = "&#8858;&#xFE0E;"; } }
+                else if (node.nr === unitNr) { styleN = "&#183;&#xFE0E;"; } else { styleN = ""; }
+                html4 += '<div class="menueItem"><div class="serverUnit" style="text-align: center;">' + styleN + '</div><div id="' + node.name + '" class="nc" onclick="sendUpdate(); nodeChange(' + i + ');iFr();">' + node.name + '<span class="numberUnit">' + node.nr + '</span></div></div>';
+                if (utton || allNodes) {
+                    if (allNodes) {
+                        if (node.nr === unitNr1) { fetch(evnT + utton + 'Long'); }
+                        else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Long"'); }
+                    }
+                    else if (isittime) {
+                        if (node.nr === unitNr1) { fetch(evnT + utton + 'Event'); }
+                        else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Event"'); }
+                    }
                 }
-                else if (isittime) {
-                    if (node.nr === unitNr1) { fetch(evnT + utton + 'Event'); }
-                    else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Event"'); }
-                }
+            })
+            i = 0
+            document.getElementById('menueList').innerHTML = html4;
+            if (hasParams) {
+                let html = '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">can not find node # ' + myParam + '...</div></div>';
+                document.getElementById('sensorList').innerHTML = html;
+                //changeCss()
+                hasParams = 0;
+                setTimeout(fetchJson, 3000);
             }
-        })
-        i = 0
-        document.getElementById('menueList').innerHTML = html4;
-        if (hasParams) {
-            let html = '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">can not find node # ' + myParam + '...</div></div>';
-            document.getElementById('sensorList').innerHTML = html;
-            //changeCss()
-            hasParams = 0;
-            setTimeout(fetchJson, 3000);
+            else { if (!nIV) { setTimeout(fetchJson, 1000); } }
         }
-        else { if (!nIV) { setTimeout(fetchJson, 1000); } }
     }
 }
 
@@ -760,7 +820,7 @@ function splitOn() {
         document.getElementById('framie').style.right = "0";
         isOpen = 1;
         console.log("open")
-    } else { document.getElementById("framie").style.right = "-280px"; isOpen = 0; console.log("close"); }
+    } else { document.getElementById("framie").style.right = "-280px"; isOpen = 0; closeAddChan(); console.log("close"); }
 }
 function iFr() { if (isOpen === 1) { document.getElementById('framie').innerHTML = '<iframe src="' + nP2 + '"></iframe>'; closeNav(); } }
 function topF() { document.body.scrollTop = 0; document.documentElement.scrollTop = 0; }
@@ -841,6 +901,7 @@ async function getUrl(url, title) {
     let controller = new AbortController();
     setTimeout(() => controller.abort(), 5000);
     try {
+        console.log('https://ntfy.sh/test2323_23_channel2?title=' + title + '&message=' + url)
         response = await fetch('https://ntfy.sh/test2323_23_channel2?title=' + title + '&message=' + url, {
             method: 'POST',
             //mode:'no-cors',
@@ -856,5 +917,3 @@ async function getUrl(url, title) {
 }
 
 !function (e, n) { "use strict"; var t = null, a = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator, i = "ontouchstart" in e || navigator.MaxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, o = 0, r = 0; function m(e) { var t; u(), e = void 0 !== (t = e).changedTouches ? t.changedTouches[0] : t, this.dispatchEvent(new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: { clientX: e.clientX, clientY: e.clientY }, clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY, screenX: e.screenX, screenY: e.screenY })) || n.addEventListener("click", function e(t) { var a; n.removeEventListener("click", e, !0), (a = t).stopImmediatePropagation(), a.preventDefault(), a.stopPropagation() }, !0) } function u(n) { var a; (a = t) && (e.cancelAnimationFrame ? e.cancelAnimationFrame(a.value) : e.webkitCancelAnimationFrame ? e.webkitCancelAnimationFrame(a.value) : e.webkitCancelRequestAnimationFrame ? e.webkitCancelRequestAnimationFrame(a.value) : e.mozCancelRequestAnimationFrame ? e.mozCancelRequestAnimationFrame(a.value) : e.oCancelRequestAnimationFrame ? e.oCancelRequestAnimationFrame(a.value) : e.msCancelRequestAnimationFrame ? e.msCancelRequestAnimationFrame(a.value) : clearTimeout(a)), t = null } "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, t) { t = t || { bubbles: !1, cancelable: !1, detail: void 0 }; var a = n.createEvent("CustomEvent"); return a.initCustomEvent(e, t.bubbles, t.cancelable, t.detail), a }, e.CustomEvent.prototype = e.Event.prototype), e.requestAnimFrame = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (n) { e.setTimeout(n, 1e3 / 60) }, n.addEventListener(a ? "pointerup" : i ? "touchend" : "mouseup", u, !0), n.addEventListener(a ? "pointermove" : i ? "touchmove" : "mousemove", function e(n) { var t = Math.abs(o - n.clientX), a = Math.abs(r - n.clientY); (t >= 10 || a >= 10) && u(n) }, !0), n.addEventListener("wheel", u, !0), n.addEventListener("scroll", u, !0), n.addEventListener(a ? "pointerdown" : i ? "touchstart" : "mousedown", function a(i) { var s, c, l; o = i.clientX, r = i.clientY, u(s = i), l = parseInt(function e(t, a, i) { for (; t && t !== n.documentElement;) { var o = t.getAttribute(a); if (o) return o; t = t.parentNode } return "600" }(c = s.target, "data-long-press-delay", "600"), 10), t = function n(t, a) { if (!e.requestAnimationFrame && !e.webkitRequestAnimationFrame && !(e.mozRequestAnimationFrame && e.mozCancelRequestAnimationFrame) && !e.oRequestAnimationFrame && !e.msRequestAnimationFrame) return e.setTimeout(t, a); var i = new Date().getTime(), o = {}, r = function () { new Date().getTime() - i >= a ? t.call() : o.value = requestAnimFrame(r) }; return o.value = requestAnimFrame(r), o }(m.bind(c, s), l) }, !0) }(window, document);
-/*! js-cookie v3.0.1 | MIT */
-!function (e, t) { "object" == typeof exports && "undefined" != typeof module ? module.exports = t() : "function" == typeof define && define.amd ? define(t) : (e = e || self, function () { var n = e.Cookies, o = e.Cookies = t(); o.noConflict = function () { return e.Cookies = n, o } }()) }(this, (function () { "use strict"; function e(e) { for (var t = 1; t < arguments.length; t++) { var n = arguments[t]; for (var o in n) e[o] = n[o] } return e } return function t(n, o) { function r(t, r, i) { if ("undefined" != typeof document) { "number" == typeof (i = e({}, o, i)).expires && (i.expires = new Date(Date.now() + 864e5 * i.expires)), i.expires && (i.expires = i.expires.toUTCString()), t = encodeURIComponent(t).replace(/%(2[346B]|5E|60|7C)/g, decodeURIComponent).replace(/[()]/g, escape); var c = ""; for (var u in i) i[u] && (c += "; " + u, !0 !== i[u] && (c += "=" + i[u].split(";")[0])); return document.cookie = t + "=" + n.write(r, t) + c } } return Object.create({ set: r, get: function (e) { if ("undefined" != typeof document && (!arguments.length || e)) { for (var t = document.cookie ? document.cookie.split("; ") : [], o = {}, r = 0; r < t.length; r++) { var i = t[r].split("="), c = i.slice(1).join("="); try { var u = decodeURIComponent(i[0]); if (o[u] = n.read(c, u), e === u) break } catch (e) { } } return e ? o[e] : o } }, remove: function (t, n) { r(t, "", e({}, n, { expires: -1 })) }, withAttributes: function (n) { return t(this.converter, e({}, this.attributes, n)) }, withConverter: function (n) { return t(e({}, this.converter, n), this.attributes) } }, { attributes: { value: Object.freeze(o) }, converter: { value: Object.freeze(n) } }) }({ read: function (e) { return '"' === e[0] && (e = e.slice(1, -1)), e.replace(/(%[\dA-F]{2})+/gi, decodeURIComponent) }, write: function (e) { return encodeURIComponent(e).replace(/%(2[346BF]|3[AC-F]|40|5[BDE]|60|7[BCD])/g, decodeURIComponent) } }, { path: "/" }) }));

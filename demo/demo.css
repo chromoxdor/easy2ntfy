@@ -34,24 +34,6 @@ body {
     justify-content: center;
 }
 
-#framie {
-    height: 100%;
-    width: 280px;
-    position: fixed;
-    z-index: 2;
-    top: 0;
-    right: -280px;
-    background-color: #111111d9;
-    transition: 0.6s;
-    overflow-y: hidden;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-    justify-content: center;
-    color: white;
-}
-
 #inputChannel {
     overflow: auto;
     text-align: center;
@@ -174,7 +156,8 @@ body {
 }
 
 .clickables:active,
-.push:active {
+.push:active,
+button:active {
     transform: scale(0.95);
     -webkit-transform: scale(0.95);
     transition: 0.1s
@@ -453,13 +436,19 @@ input[type=number] {
     justify-content: space-between;
 }
 
+#framie {
+    right: -280px;
+}
 .sidenav {
+    left: -280px;
+}
+.sidenav,
+#framie {
     height: 100%;
     width: 280px;
     position: fixed;
     z-index: 20;
     top: 0;
-    left: -280px;
     background-color: #111111d9;
     transition: 0.6s;
     overflow-y: hidden;
@@ -596,8 +585,44 @@ input[type=number] {
     transform: translate(0,-11px) rotate(45deg);
   }
 
-  .addBtn {
+  #addBtn {
     padding: 15px;
+    cursor: pointer;
+}
+.cInputs {
+    height: 30px;
+    border-radius: 5px;
+    padding: 5px;
+    border: 0;
+    margin: 5px;
+}
+
+button {
+	border: 0;
+	border-radius: 5px;
+    color: black;
+	margin: 5px;
+	padding: 5px 15px;
+    cursor: pointer;
+}
+
+button.remove {
+    background: brown;
+    color: white;
+}
+
+.chanBtnSelect {
+    background: #3e88cb;
+    color: white;
+}
+
+.channelName {
+    font-size: 10px;
+    color: #adadad;
+}
+
+#closeBtn2 {
+    left:20px;
 }
 @media screen and (max-height: 450px) {
     #framie {
