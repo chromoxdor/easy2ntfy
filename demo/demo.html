@@ -15,14 +15,26 @@
 
 <body>
     <div id="container">
-        <div id="framie"></div>
+        <div id="framie">
+            <div id="channelList"></div>
+            <div class="addBtn" onclick="addChan(this)">
+                <div class="bar1"></div>
+                <div class="bar2"></div>
+            </div>
+            <div id="inputChannel" style="height:0">
+                <input type="text" id="channelNa" class="cInputs" name="channelNa" placeholder="Name"><br>
+                <input type="text" id="channelNr" class="cInputs" name="channelNr" placeholder="Channel" onkeydown="return /[\w_-]/i.test(event.key)"><br>
+                <button onclick="submitChan()">Submit</button>
+            </form>
+            </div>
+        </div>
         <div id="mySidenav" class="sidenav">
             <div id="sysInfo">no info found...</div>
             <div class="menueWrap" id="menueWrap1"></div>
             <div id="menueList"></div>
             <div class="menueWrap" id="menueWrap2"></div>
             <div class="sideNbtn" id="openSys" onclick="openSys(event)">
-                <div id="dateV">20230127/demo</div>&#8505;&#xFE0E;
+                <div id="dateV">20230220/1</div>&#8505;&#xFE0E;
             </div>
             <div class="sideNbtn" id="closeBtn" onclick="closeNav()">&times;&#xFE0E;</div>
         </div>
@@ -37,7 +49,7 @@
                 <span id="nOpen" style="font-size:30px;cursor:pointer;background:none;"
                     onclick="openNav(event)">&#9776;&#xFE0E;</span>
                 <span id="mOpen" style="font-size:30px;cursor:pointer;background:none;"
-                    onclick="splitOn(); topF()">&#8962;&#xFE0E;</span>
+                    onclick="splitOn(); topF(); generateChan();">&#8962;&#xFE0E;</span>
             </div>
         </div>
     </div>
