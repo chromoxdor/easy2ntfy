@@ -38,6 +38,7 @@ var evnT = 'control?cmd=event,';
 var ntfyJson;
 var ntfyChannel = '';
 var selectVal;
+var myJson;
 
 function addChan() {
     if (document.getElementById('inputChannel').offsetHeight === 0) {
@@ -142,10 +143,8 @@ async function fetchNtfy() {
         setInterval(sendReady, 30000);
         const eventSource = new EventSource('https://ntfy.sh/' + ntfyChannel + '_json/sse');
         eventSource.onmessage = (e) => {
-            console.log(e.data);
             if (JSON.parse(e.data).message) {
                 ntfyJson = JSON.parse(e.data).message;
-                console.log(JSON.parse(ntfyJson).System)
                 fetchJson(ntfyJson)
                 console.log("yes");
             } else console.log("no");
@@ -427,7 +426,7 @@ function fetchJson(ntfyJson) {
             //setInterval(fetchJson, 2000);
             setInterval(getTS, 10000);
             getTS();
-            //getNodes();
+            getNodes();
             longPressS();
             longPressN();
             unitNr1 = myJson.System['Unit Number'];
@@ -708,10 +707,7 @@ function blurInput() {
 function openNav(whatisit) {
     navOpen = 1;
     if (whatisit) manNav = 1;
-    if (nIV) { clearInterval(nIV); }
-    nIV = setInterval(getNodes, 10000);
     if (document.getElementById('mySidenav').offsetLeft === -280) {
-        getNodes();
         document.getElementById("mySidenav").style.left = "0";
     } else { closeNav(); }
 }
@@ -732,8 +728,6 @@ function openSys() {
     }
 }
 function getNodes(utton, allNodes, hasIt) {
-    if (ntfyJson) {
-        myJson = JSON.parse(ntfyJson);
         if ((Date.now() - responseTime) < 5000) {
             let html4 = '';
             nInf = myJson.nodes;
@@ -766,7 +760,6 @@ function getNodes(utton, allNodes, hasIt) {
             }
             else { if (!nIV) { setTimeout(fetchJson, 1000); } }
         }
-    }
 }
 
 function sendUpdate() {
@@ -901,8 +894,8 @@ async function getUrl(url, title) {
     let controller = new AbortController();
     setTimeout(() => controller.abort(), 5000);
     try {
-        console.log('https://ntfy.sh/test2323_23_channel2?title=' + title + '&message=' + url)
-        response = await fetch('https://ntfy.sh/test2323_23_channel2?title=' + title + '&message=' + url, {
+        console.log('https://ntfy.sh/'+ntfyChannel+'?title=' + title + '&message=' + url)
+        response = await fetch('https://ntfy.sh/'+ntfyChannel+'?title=' + title + '&message=' + url, {
             method: 'POST',
             //mode:'no-cors',
             headers: {
