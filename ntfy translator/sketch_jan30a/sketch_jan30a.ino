@@ -44,7 +44,7 @@ unsigned long lastTime = 0;
 unsigned long timerDelay = 10000;
 
 unsigned long lastUpdate = 0;
-unsigned long timerDelay2 = 60000;
+unsigned long timerDelay2 = 120000;
 
 const char* sendOK;
 const char* toESPcommand;
@@ -190,22 +190,34 @@ void parseWsMessage() {
   Serial.println(getTime());
   sendOKStr = sendOK;
   toESPcommandStr = toESPcommand;
-  //toESPcommandStr = toESPcommand;
   if (sendOKStr == "send") {
     digitalWrite(ledPin, LOW);
     Serial.println("sending data...");
     receiveLoop = true;
     lastUpdate = millis();
-  } else if (sendOKStr == "command" && receiveLoop) {
+  } else if (sendOKStr == "command" || sendOKStr == "dualcommand" && receiveLoop) {
     //epochTime = getTime();
     if (getTime() - receiveTime < 1) {
-      Command2ESP();
+      if (sendOKStr == "command"){
+      Command2ESP(toESPcommandStr);
+      } else 
+        splitCommand(toESPcommandStr)
     } else {
       Serial.println("discarded command..took to long!!!");
     }
   }
   Serial.println("----------------------------------------------------------------------");
 }
+
+void splitCommand(String command) {
+  int index = command.IndexOf(' ');
+    int length = command.length();
+    String commandStr1 = command.substring(0, index);
+    String commandStr2 = command.substring(index, length);
+    Command2ESP(commandStr1);
+    Command2ESP(commandStr2);
+}
+ 
 
 void onEventsCallback(WebsocketsEvent event, String data) {
   (void)data;
@@ -364,11 +376,11 @@ void loop() {
 }
 
 //################################### Command 2 ESPeasyIP ##############################################
-void Command2ESP() {
+void Command2ESP(String toESPcommand) {
   Serial.println();
   Serial.println("----------------------sending command to ESP...---------------------");
   String ESPeasyPath2 = ESPeasyIP;
-  ESPeasyPath2 = "http://" + ESPeasyPath2 + "/" + toESPcommandStr;
+  ESPeasyPath2 = "http://" + ESPeasyPath2 + "/" + toESPcommand;
   Serial.println(ESPeasyPath2);
   http3.begin(client, ESPeasyPath2);
   //GET json from ESPeasyIP----------------------------

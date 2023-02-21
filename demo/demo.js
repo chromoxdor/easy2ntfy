@@ -40,6 +40,8 @@ var ntfyChannel = '';
 var selectVal;
 var myJson;
 var nodeUpdate;
+var responseStatus;
+var responseTime = 0;
 
 
 //------------------------------------channel & cookie handling------------------------------------------------------
@@ -621,8 +623,20 @@ function sliderChTS(event) {
     const slTName = slider.parentNode.parentNode;
     if (slider.id == slTName.id + "L") { var secVal = document.getElementById(slTName.id + "R"); }
     else { var secVal = document.getElementById(slTName.id + "L"); }
-    if (unitNr === unitNr1) { if (slider.id == slTName.id + "L") { getUrl(tvSet + slTName.classList[2] + ',' + event.target.value + '.' + secVal.value.toString().padStart(4, "0")); } else { getUrl(tvSet + slTName.classList[2] + ',' + secVal.value + '.' + event.target.value.toString().padStart(4, "0")); }; getUrl(evnT + slTName.classList[1] + 'Event=' + slTName.classList[2].split(",")[1]) }
-    else { if (slider.id == slTName.id + "L") { getUrl(sndTo + nNr + ',"taskvalueset,' + slTName.classList[2] + ',' + event.target.value + '.' + secVal.value.toString().padStart(4, "0") + '"'); } else { getUrl(sndTo + nNr + ',"taskvalueset,' + slTName.classList[2] + ',' + secVal.value + '.' + event.target.value.toString().padStart(4, "0") + '"'); }; getUrl(sndTo + nNr + ',"event,' + slTName.classList[1] + 'Event=' + slTName.classList[2].split(",")[1] + '"') }
+    if (unitNr === unitNr1) {
+        if (slider.id == slTName.id + "L") {
+            getUrl(tvSet + slTName.classList[2] + ',' + event.target.value + '.' + secVal.value.toString().padStart(4, "0") + ' ' + evnT + slTName.classList[1] + 'Event=' + slTName.classList[2].split(",")[1], "dualcommand");
+        } else { getUrl(tvSet + slTName.classList[2] + ',' + secVal.value + '.' + event.target.value.toString().padStart(4, "0") + ' ' + evnT + slTName.classList[1] + 'Event=' + slTName.classList[2].split(",")[1], "dualcommand"); }
+        //getUrl(evnT + slTName.classList[1] + 'Event=' + slTName.classList[2].split(",")[1])
+    }
+    else {
+        if (slider.id == slTName.id + "L") {
+            getUrl(sndTo + nNr + ',"taskvalueset,' + slTName.classList[2] + ',' + event.target.value + '.' + secVal.value.toString().padStart(4, "0") + '"');
+        } else {
+            getUrl(sndTo + nNr + ',"taskvalueset,' + slTName.classList[2] + ',' + secVal.value + '.' + event.target.value.toString().padStart(4, "0") + '"');
+        }
+        getUrl(sndTo + nNr + ',"event,' + slTName.classList[1] + 'Event=' + slTName.classList[2].split(",")[1] + '"')
+    }
     clearTimeout(iIV);
     iIV = setTimeout(blurInput, 1000);
 }
@@ -642,9 +656,9 @@ function sliderChange(event) {
     if ((slider.id.match(/\?/g) || []).length >= 3 || slider.classList[1] == 'npSl') { sliderId = slider.id.split("?")[0]; } else { sliderId = slider.id; }
     if (gesVal) gesVal = gesVal.filter(n => n)
     if (unitNr === unitNr1) {
-        getUrl(tvSet + slider.classList[2] + ',' + slA);
-        if (slider.classList[1] != 'npSl') { getUrl(evnT + sliderId + 'Event=' + slA + OnOff); }
-        else { getUrl(evnT + sliderId + 'Event=' + gesVal) }
+        //getUrl(tvSet + slider.classList[2] + ',' + slA);
+        if (slider.classList[1] != 'npSl') { getUrl(tvSet + slider.classList[2] + ',' + slA + ' ' + evnT + sliderId + 'Event=' + slA + OnOff, "dualcommand"); }
+        else { getUrl(tvSet + slider.classList[2] + ',' + slA + ' ' + evnT + sliderId + 'Event=' + gesVal, "dualcommand") }
     }
     else {
         getUrl(sndTo + nNr + ',"taskvalueset,' + slider.classList[2] + ',' + slA + '"');
@@ -905,23 +919,26 @@ function playSound(freQ) {
 
 //timeout fetch requests
 async function getUrl(url, title) {
-    if (!title) title = "command"
-    let controller = new AbortController();
-    setTimeout(() => controller.abort(), 5000);
-    try {
-        console.log('https://' + ntfyChannel + '?title=' + title + '&message=' + url)
-        response = await fetch('https://' + ntfyChannel + '?title=' + title + '&message=' + url, {
-            method: 'POST',
-            //mode:'no-cors',
-            headers: {
-                'Cache': 'no'
-            }
-        })
-        //response = await fetch(url, {
-        //  signal: controller.signal
-        //});
-    } catch { }
-    return response;
+    if (Date.now() - responseTime > 10000) {
+        if (!title) title = "command"
+        let controller = new AbortController();
+        setTimeout(() => controller.abort(), 5000);
+        try {
+            console.log('https://' + ntfyChannel + '?title=' + title + '&message=' + url)
+            response = await fetch('https://' + ntfyChannel + '?title=' + title + '&message=' + url, {
+                signal: controller.signal,
+                method: 'POST',
+                //mode:'no-cors',
+                headers: {
+                    'Cache': 'no'
+                }
+            });
+
+            //responseStatus = response.status
+            if (response.status == 429) { responseTime = Date.now(); alert("You reached the limit of commands, please wait a moment (https://docs.ntfy.sh/publish/#limitations)") }
+        } catch { }
+        return response;
+    }
 }
 
 !function (e, n) { "use strict"; var t = null, a = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator, i = "ontouchstart" in e || navigator.MaxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, o = 0, r = 0; function m(e) { var t; u(), e = void 0 !== (t = e).changedTouches ? t.changedTouches[0] : t, this.dispatchEvent(new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: { clientX: e.clientX, clientY: e.clientY }, clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY, screenX: e.screenX, screenY: e.screenY })) || n.addEventListener("click", function e(t) { var a; n.removeEventListener("click", e, !0), (a = t).stopImmediatePropagation(), a.preventDefault(), a.stopPropagation() }, !0) } function u(n) { var a; (a = t) && (e.cancelAnimationFrame ? e.cancelAnimationFrame(a.value) : e.webkitCancelAnimationFrame ? e.webkitCancelAnimationFrame(a.value) : e.webkitCancelRequestAnimationFrame ? e.webkitCancelRequestAnimationFrame(a.value) : e.mozCancelRequestAnimationFrame ? e.mozCancelRequestAnimationFrame(a.value) : e.oCancelRequestAnimationFrame ? e.oCancelRequestAnimationFrame(a.value) : e.msCancelRequestAnimationFrame ? e.msCancelRequestAnimationFrame(a.value) : clearTimeout(a)), t = null } "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, t) { t = t || { bubbles: !1, cancelable: !1, detail: void 0 }; var a = n.createEvent("CustomEvent"); return a.initCustomEvent(e, t.bubbles, t.cancelable, t.detail), a }, e.CustomEvent.prototype = e.Event.prototype), e.requestAnimFrame = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (n) { e.setTimeout(n, 1e3 / 60) }, n.addEventListener(a ? "pointerup" : i ? "touchend" : "mouseup", u, !0), n.addEventListener(a ? "pointermove" : i ? "touchmove" : "mousemove", function e(n) { var t = Math.abs(o - n.clientX), a = Math.abs(r - n.clientY); (t >= 10 || a >= 10) && u(n) }, !0), n.addEventListener("wheel", u, !0), n.addEventListener("scroll", u, !0), n.addEventListener(a ? "pointerdown" : i ? "touchstart" : "mousedown", function a(i) { var s, c, l; o = i.clientX, r = i.clientY, u(s = i), l = parseInt(function e(t, a, i) { for (; t && t !== n.documentElement;) { var o = t.getAttribute(a); if (o) return o; t = t.parentNode } return "600" }(c = s.target, "data-long-press-delay", "600"), 10), t = function n(t, a) { if (!e.requestAnimationFrame && !e.webkitRequestAnimationFrame && !(e.mozRequestAnimationFrame && e.mozCancelRequestAnimationFrame) && !e.oRequestAnimationFrame && !e.msRequestAnimationFrame) return e.setTimeout(t, a); var i = new Date().getTime(), o = {}, r = function () { new Date().getTime() - i >= a ? t.call() : o.value = requestAnimFrame(r) }; return o.value = requestAnimFrame(r), o }(m.bind(c, s), l) }, !0) }(window, document);
