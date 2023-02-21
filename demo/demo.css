@@ -455,7 +455,6 @@ input[type=number] {
     display: flex;
     flex-direction: column;
     align-items: center;
-    cursor: pointer;
     justify-content: center;
     color: white;
 }
@@ -484,6 +483,7 @@ input[type=number] {
     bottom: 2%;
     font-size: 35px;
     color: #b3b3b3;
+    cursor: pointer;
 }
 
 #openSys {
@@ -502,6 +502,7 @@ input[type=number] {
     transition: .2s;
     width: max-content;
     max-width: 280px;
+    cursor: pointer;
 }
 
 #menueList::-webkit-scrollbar {
@@ -566,10 +567,10 @@ input[type=number] {
 }
 
 .bar1, .bar2 {
-    width: 25px;
-    height: 5px;
+    width: 20px;
+    height: 3px;
     background-color: #b3b3b3;
-    margin: 6px 0;
+    margin: 8px 0;
     transition: 0.4s;
   }
   

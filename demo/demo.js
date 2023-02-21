@@ -13,7 +13,7 @@ var unitNr;
 var unitNr1;
 var nIV; //nodeinterval
 var iIV; //InputInterV
-var isOpen;
+var isOpen = 0;
 var navOpen;
 var myParam;
 var hasParams = 1;
@@ -39,16 +39,22 @@ var ntfyJson;
 var ntfyChannel = '';
 var selectVal;
 var myJson;
+var nodeUpdate;
 
+
+//------------------------------------channel & cookie handling------------------------------------------------------
 function addChan() {
     if (document.getElementById('inputChannel').offsetHeight === 0) {
         document.getElementById("inputChannel").style.height = "160px";
         document.getElementById('addBtn').classList.add("change");
-        enterLastinput()
+        enterOnInputs()
     } else { closeAddChan() }
 }
 function closeAddChan() {
-    document.getElementById("inputChannel").style.height = "0"; document.getElementById('addBtn').classList.remove("change");
+    document.getElementById("inputChannel").style.height = "0";
+    document.getElementById('addBtn').classList.remove("change");
+    document.getElementById("channelNa").value = "";
+    document.getElementById("channelNr").value = "";
 }
 function submitChan() {
     chanName = document.getElementById("channelNa").value;
@@ -60,14 +66,10 @@ function submitChan() {
         //Cookies.set('ntfy_' + chanName, chanNumber, { expires: 99999})
         document.cookie = "ntfy_" + chanName + "=" + chanServer + '/' + chanNumber + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
         document.getElementById("inputChannel").style.height = "0";
-        document.getElementById("channelNa").value = "";
-        document.getElementById("channelNr").value = "";
     }
     generateChan()
     closeAddChan()
-
 }
-
 function generateChan() {
     cookieObj = str_obj(document.cookie);
     let html5 = '';
@@ -85,7 +87,6 @@ function generateChan() {
     });
     document.getElementById('channelList').innerHTML = html5;
 }
-
 function str_obj(str) {
     str = str.split('; ');
     var result = {};
@@ -95,7 +96,6 @@ function str_obj(str) {
     }
     return result;
 }
-
 function setChannel(data) {
     ntfyChannel = data.children[1].textContent;
     document.cookie = "*selectedChannel=" + ntfyChannel + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
@@ -104,10 +104,9 @@ function setChannel(data) {
         chanBtn.classList.remove("chanBtnSelect");
     });
     data.classList.add("chanBtnSelect");
-    splitOn()
+    openChanSelection()
     fetchNtfy()
 }
-
 function delChan(name, value) {
     console.log(name, value);
     if (get_cookie(name)) {
@@ -125,14 +124,21 @@ function get_cookie(name) {
         return c.trim().startsWith(name + '=');
     });
 }
-function enterLastinput() {
+function enterOnInputs() {
     document.getElementById("channelNr").addEventListener("keypress", function (event) {
         if (event.key === "Enter") {
             event.preventDefault();
             submitChan();
         }
     });
+    document.getElementById("channelSrv").addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            submitChan();
+        }
+    });
 }
+//----------------------------------ntfy handling--------------------------------------------------------------------
 
 async function fetchNtfy() {
     cookieObj = str_obj(document.cookie);
@@ -142,10 +148,12 @@ async function fetchNtfy() {
     });
     if (ntfyChannel) {
         sendReady();
-        setInterval(sendReady, 30000);
+        setInterval(sendReady, 60000);
+        console.log("sending something")
         const eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
         eventSource.onmessage = (e) => {
             if (JSON.parse(e.data).message) {
+                //ntfyJson = IP1;
                 ntfyJson = JSON.parse(e.data).message;
                 fetchJson(ntfyJson)
                 console.log("yes");
@@ -156,7 +164,7 @@ async function fetchNtfy() {
 
 async function sendReady() {
     console.log("ready")
-    fetch('https://' + ntfyChannel + '?tags=123', {
+    fetch('https://' + ntfyChannel, {
         method: 'POST',
         headers: {
             'Title': 'send',
@@ -164,15 +172,19 @@ async function sendReady() {
         },
     })
 }
+
+//------------------------------------------------------------------------------------------------------
+
 function fetchJson(ntfyJson) {
     urlParams = new URLSearchParams(window.location.search);
     myParam = urlParams.get('unit');
     if (myParam == null) { hasParams = 0; }
     someoneEn = 0;
     if (!jsonPath) { jsonPath = ntfyJson; }
-    let nodeCheck = nNr;
-    responseTime = Date.now();
+    //if (!jsonPath) { jsonPath = IP1; }
+    //myJson = jsonPath
     myJson = JSON.parse(ntfyJson);
+    //myJson = ntfyJson;
     isittime = 1;
     if (isittime) {
         console.log(myJson);
@@ -213,7 +225,7 @@ function fetchJson(ntfyJson) {
         else {
             myJson.Sensors.forEach(sensor => {
                 utton = sensor.TaskName;
-                htS1 = ' sensorset clickables" onclick="playSound(3000), ';
+                htS1 = ' sensorset clickables" onmouseup="setTimeout(blurInput.bind(null, \'1\',), 100);" onclick="playSound(3000), ';
                 htS2 = '<div  class="sensors" style="font-weight:bold;">' + utton + '</div>'
                 exC = !![38].indexOf(sensor.TaskDeviceNumber); //all PluginNR in an array that need to be excluded 
                 exC2 = !sensor.Type?.includes("Display")
@@ -430,18 +442,19 @@ function fetchJson(ntfyJson) {
             getTS();
             getNodes();
             longPressS();
-            longPressN();
+            //longPressN();
             unitNr1 = myJson.System['Unit Number'];
-            nP2 = 'http://' + myJson.WiFi['IP Address'] + '/devices';
-            nP = 'http://' + myJson.WiFi['IP Address'] + '/tools';
+            /*nP2 = 'http://' + myJson.WiFi['IP Address'] + '/devices';
+            nP = 'http://' + myJson.WiFi['IP Address'] + '/tools';*/
             firstRun = 0;
         }
-        if (unitNr === unitNr1) { styleU = "&#8858;"; }
-        else { styleU = ""; }
+        /*if (unitNr === unitNr1) { styleU = "&#8858;"; }
+        else { styleU = ""; }*/
         if (!hasParams) {
-            document.getElementById('unitId').innerHTML = styleU + unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
-            document.getElementById('unitT').innerHTML = styleU + unit;
+            document.getElementById('unitId').innerHTML = unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
+            document.getElementById('unitT').innerHTML = unit;
         }
+        getNodes();
         paramS();
         changeCss();
         resizeText();
@@ -660,7 +673,6 @@ function buttonClick(utton, gState) {
             if (unitNr === unitNr1) { getUrl(evnT + utton + 'Event'); }
             else { getUrl(sndTo + nNr + ',"event,' + utton + 'Event"'); }
         }
-        setTimeout(getUrl.bind(null, '', 'update'), 500);
     }
 }
 
@@ -703,9 +715,16 @@ function getInput(ele, initalCLick) {
     else if (event.key === 'Escape') { document.getElementById(ele.id).value = ""; }
     else { clearTimeout(iIV); iIV = setTimeout(blurInput, 5000); }
 }
-function blurInput() {
+
+function blurInput(on) {
     isittime = 1;
+    console.log(on);
+    if (on) {
+        clearTimeout(nodeUpdate);
+        nodeUpdate = setTimeout(getUrl.bind(null, '', 'update'), 800);
+    }
 }
+
 function openNav(whatisit) {
     navOpen = 1;
     if (whatisit) manNav = 1;
@@ -729,56 +748,56 @@ function openSys() {
         document.getElementById('menueWrap1').style.flexShrink = "999";
     }
 }
+
 function getNodes(utton, allNodes, hasIt) {
-    if ((Date.now() - responseTime) < 5000) {
-        let html4 = '';
-        nInf = myJson.nodes;
-        let i = -1;
-        myJson.nodes.forEach(node => {
-            i++
-            if (node.nr == myParam) { if (hasParams) { nodeChange(i); hasParams = 0; } }
-            if (node.nr === unitNr1) { if (node.nr === unitNr) { styleN = "&#8857;&#xFE0E;"; } else { styleN = "&#8858;&#xFE0E;"; } }
-            else if (node.nr === unitNr) { styleN = "&#183;&#xFE0E;"; } else { styleN = ""; }
-            html4 += '<div class="menueItem"><div class="serverUnit" style="text-align: center;">' + styleN + '</div><div id="' + node.name + '" class="nc" onclick="sendUpdate(); nodeChange(' + i + ');iFr();">' + node.name + '<span class="numberUnit">' + node.nr + '</span></div></div>';
-            if (utton || allNodes) {
-                if (allNodes) {
-                    if (node.nr === unitNr1) { fetch(evnT + utton + 'Long'); }
-                    else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Long"'); }
-                }
-                else if (isittime) {
-                    if (node.nr === unitNr1) { fetch(evnT + utton + 'Event'); }
-                    else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Event"'); }
-                }
+    let html4 = '';
+    nInf = myJson.nodes;
+    console.log(myJson.nodes);
+    let i = -1;
+    myJson.nodes.forEach(node => {
+        i++
+        if (node.nr == myParam) { if (hasParams) { nodeChange(i); hasParams = 0; } }
+        //if (node.nr === unitNr1) { if (node.nr === unitNr) { styleN = "&#8857;&#xFE0E;"; } else { styleN = "&#8858;&#xFE0E;"; } }
+        if (node.nr === unitNr) { styleN = "&#183;&#xFE0E;"; } else { styleN = ""; }
+        html4 += '<div class="menueItem"><div class="serverUnit" style="text-align: center;">' + styleN + '</div><div id="' + node.name + '" class="nc" onclick="nodeChange(' + i + ');">' + node.name + '<span class="numberUnit">' + node.nr + '</span></div></div>';
+        if (utton || allNodes) {
+            if (allNodes) {
+                if (node.nr === unitNr1) { fetch(evnT + utton + 'Long'); }
+                else { getUrl(sndTo + node.nr + ',"event,' + utton + 'Long"'); }
             }
-        })
-        i = 0
-        document.getElementById('menueList').innerHTML = html4;
-        if (hasParams) {
-            let html = '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">can not find node # ' + myParam + '...</div></div>';
-            document.getElementById('sensorList').innerHTML = html;
-            //changeCss()
-            hasParams = 0;
-            setTimeout(fetchJson, 3000);
+            else if (isittime) {
+                if (node.nr === unitNr1) { fetch(evnT + utton + 'Event'); }
+                else { getUrl(sndTo + node.nr + ',"event,' + utton + 'Event"'); }
+            }
         }
-        //else { if (!nIV) { setTimeout(fetchJson, 1000); } }
+    })
+    i = 0
+    document.getElementById('menueList').innerHTML = html4;
+    if (hasParams) {
+        let html = '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">can not find node # ' + myParam + '...</div></div>';
+        document.getElementById('sensorList').innerHTML = html;
+        changeCss()
+        hasParams = 0;
+        setTimeout(fetchJson, 3000);
     }
-}
-
-function sendUpdate() {
-    setTimeout(getNodes.bind(null, '', '', 1), 600);
-
+    //else { if (!nIV) { setTimeout(fetchJson, 1000); } }
 }
 
 function nodeChange(event) {
+    console.log("event:", event, "ninf:", nInf)
     nInf = nInf[event];
     if (nInf) {
         nNr = nInf.nr;
         nN = nInf.name;
-        nP = `http://${nInf.ip}/tools`;
-        nP2 = `http://${nInf.ip}/devices`;
-        jsonPath = `http://${nInf.ip}/json`;
+        console.log(nInf.ip);
+        /*nP = `http://${nInf.ip}/tools`;
+        nP2 = `http://${nInf.ip}/devices`;*/
+        jsonPath = window[nInf.ip];
+        console.log(jsonPath);
         window.history.replaceState(null, null, '?unit=' + nNr);
-        fetchJson(1);
+        //setTimeout(fetchJson, 1000);
+        //setTimeout(getNodes, 500);
+        getUrl(nInf.ip, "change_node")
     }
     if (window.innerWidth < 450 && document.getElementById('sysInfo').offsetHeight === 0) { closeNav(); }
 }
@@ -800,6 +819,7 @@ function resizeText() {
     }
     resizeText({ elements: document.querySelectorAll('.valueBig'), step: 1 })
 }
+
 function launchFs(element) {
     if (element.requestFullscreen) {
         element.requestFullscreen();
@@ -809,15 +829,16 @@ function launchFs(element) {
         element.msRequestFullscreen();
     }
 }
-function splitOn() {
-    console.log("offset", document.getElementById('framie').offsetLeft, "innerwidth", window.innerWidth)
-    if (document.getElementById('framie').offsetLeft >= window.innerWidth) {
+
+function openChanSelection() {
+    if (!isOpen) {
         document.getElementById('framie').style.right = "0";
         isOpen = 1;
         console.log("open")
     } else { document.getElementById("framie").style.right = "-280px"; isOpen = 0; closeAddChan(); console.log("close"); }
 }
-function iFr() { if (isOpen === 1) { document.getElementById('framie').innerHTML = '<iframe src="' + nP2 + '"></iframe>'; closeNav(); } }
+
+//function iFr() { if (isOpen === 1) { document.getElementById('framie').innerHTML = '<iframe src="' + nP2 + '"></iframe>'; closeNav(); } }
 function topF() { document.body.scrollTop = 0; document.documentElement.scrollTop = 0; }
 function longPressN() { document.getElementById('mOpen').addEventListener('long-press', function (e) { window.location.href = nP; }); }
 function longPressS() {
@@ -827,13 +848,7 @@ function longPressS() {
         cooK = document.cookie;
     });
 }
-function longPressS() {
-    document.getElementById('closeBtn').addEventListener('long-press', function (e) {
-        if (cooK.includes("Snd=1")) { playSound(500); document.cookie = "Snd=0; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;" }
-        else { playSound(900); document.cookie = "Snd=1; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;" }
-        cooK = document.cookie;
-    });
-}
+
 function longPressB() {
     var executed = false;
     const longButtons = document.querySelectorAll(".clickables");
@@ -849,16 +864,13 @@ function longPressB() {
                     utton2 = (lBName.id).split("&")[0];
                     nNr2 = (lBName.id).split("&")[1];
                     getUrl(sndTo + nNr2 + ',"event,' + utton2 + 'Long"');
-                    setTimeout(fetchJson, 400);
                 } else {
                     if (unitNr === unitNr1 && !executed) { getUrl(evnT + lBName.textContent + 'Long'); executed = true; }
                     else { getUrl(sndTo + nNr + ',"event,' + lBName.textContent + 'Long"'); executed = true; }
-                    setTimeout(fetchJson, 400);
                 }
             }
             playSound(1000);
             isittime = 0;
-            iIV = setTimeout(blurInput, 600);
         });
     });
 }
@@ -890,6 +902,7 @@ function playSound(freQ) {
         o.stop(c.currentTime + 0.01)
     }
 }
+
 //timeout fetch requests
 async function getUrl(url, title) {
     if (!title) title = "command"
@@ -912,3 +925,1578 @@ async function getUrl(url, title) {
 }
 
 !function (e, n) { "use strict"; var t = null, a = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator, i = "ontouchstart" in e || navigator.MaxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, o = 0, r = 0; function m(e) { var t; u(), e = void 0 !== (t = e).changedTouches ? t.changedTouches[0] : t, this.dispatchEvent(new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: { clientX: e.clientX, clientY: e.clientY }, clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY, screenX: e.screenX, screenY: e.screenY })) || n.addEventListener("click", function e(t) { var a; n.removeEventListener("click", e, !0), (a = t).stopImmediatePropagation(), a.preventDefault(), a.stopPropagation() }, !0) } function u(n) { var a; (a = t) && (e.cancelAnimationFrame ? e.cancelAnimationFrame(a.value) : e.webkitCancelAnimationFrame ? e.webkitCancelAnimationFrame(a.value) : e.webkitCancelRequestAnimationFrame ? e.webkitCancelRequestAnimationFrame(a.value) : e.mozCancelRequestAnimationFrame ? e.mozCancelRequestAnimationFrame(a.value) : e.oCancelRequestAnimationFrame ? e.oCancelRequestAnimationFrame(a.value) : e.msCancelRequestAnimationFrame ? e.msCancelRequestAnimationFrame(a.value) : clearTimeout(a)), t = null } "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, t) { t = t || { bubbles: !1, cancelable: !1, detail: void 0 }; var a = n.createEvent("CustomEvent"); return a.initCustomEvent(e, t.bubbles, t.cancelable, t.detail), a }, e.CustomEvent.prototype = e.Event.prototype), e.requestAnimFrame = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (n) { e.setTimeout(n, 1e3 / 60) }, n.addEventListener(a ? "pointerup" : i ? "touchend" : "mouseup", u, !0), n.addEventListener(a ? "pointermove" : i ? "touchmove" : "mousemove", function e(n) { var t = Math.abs(o - n.clientX), a = Math.abs(r - n.clientY); (t >= 10 || a >= 10) && u(n) }, !0), n.addEventListener("wheel", u, !0), n.addEventListener("scroll", u, !0), n.addEventListener(a ? "pointerdown" : i ? "touchstart" : "mousedown", function a(i) { var s, c, l; o = i.clientX, r = i.clientY, u(s = i), l = parseInt(function e(t, a, i) { for (; t && t !== n.documentElement;) { var o = t.getAttribute(a); if (o) return o; t = t.parentNode } return "600" }(c = s.target, "data-long-press-delay", "600"), 10), t = function n(t, a) { if (!e.requestAnimationFrame && !e.webkitRequestAnimationFrame && !(e.mozRequestAnimationFrame && e.mozCancelRequestAnimationFrame) && !e.oRequestAnimationFrame && !e.msRequestAnimationFrame) return e.setTimeout(t, a); var i = new Date().getTime(), o = {}, r = function () { new Date().getTime() - i >= a ? t.call() : o.value = requestAnimFrame(r) }; return o.value = requestAnimFrame(r), o }(m.bind(c, s), l) }, !0) }(window, document);
+
+var IP1 = {
+    "System": {
+        "Load": 23.18,
+        "Load LC": 8320,
+        "Build": 20221105,
+        "Git Build": "mega-20221105",
+        "System Libraries": "ESP82xx Core 2843a5ac, NONOS SDK 2.2.2-dev(c0eb301), LWIP: 2.1.2 PUYA support",
+        "Plugin Count": 47,
+        "Plugin Description": "[Normal]",
+        "Build Time": "Nov  5 2022 15:50:49",
+        "Binary Filename": "ESP_Easy_mega_20221105_normal_ESP8266_4M1M",
+        "Local Time": "2023-01-27 09:15:12",
+        "UTC time stored in RTC": "-",
+        "Time Source": "NTP",
+        "Time Wander": -4.2,
+        "Use NTP": "true",
+        "Unit Number": 1,
+        "Unit Name": "Main",
+        "Uptime": 1492,
+        "Uptime (ms)": 89507818,
+        "Last Boot Cause": "Exception",
+        "Reset Reason": "Exception",
+        "CPU Eco Mode": "false",
+        "Heap Max Free Block": 8360,
+        "Heap Fragmentation": 31,
+        "Free RAM": 12336,
+        "Free Stack": 3536,
+        "ESP Chip Model": "ESP8266",
+        "Sunrise": "7:54",
+        "Sunset": "16:42",
+        "Timezone Offset": 60,
+        "Latitude": 52.53,
+        "Longitude": 13.40,
+        "Syslog Log Level": "None",
+        "Serial Log Level": "None",
+        "Web Log Level": "None"
+    },
+    "WiFi": {
+        "Hostname": "Main",
+        "IP Address": "IP1",
+        "RSSI": -43
+    },
+    "nodes": [
+        {
+            "nr": 1,
+            "name": "Main",
+            "ip": "IP1",
+        }, {
+            "nr": 2,
+            "name": "Heating",
+            "ip": "IP2",
+        }, {
+            "nr": 3,
+            "name": "Bedroom",
+            "ip": "IP3",
+        }, {
+            "nr": 4,
+            "name": "NeoPixel",
+            "ip": "IP4",
+        }],
+    "Sensors": [
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "State",
+                    "NrDecimals": 0,
+                    "Value": 0
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Switch input - Switch",
+            "TaskName": "ButtonXX",
+            "TaskDeviceNumber": 1,
+            "TaskEnabled": "true",
+            "TaskNumber": 1
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "btnState?12",
+                    "NrDecimals": 0,
+                    "Value": 0
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Switch input - Switch",
+            "TaskName": "Light1",
+            "TaskDeviceNumber": 1,
+            "TaskEnabled": "true",
+            "TaskNumber": 2
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Bathroom&5",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "TV&7",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "TV_Bedroom&3",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 4,
+                    "Name": "Coffee&6",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "dButtons",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 3
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Countdown?0?60?1?min",
+                    "NrDecimals": 0,
+                    "Value": 30
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "vSlider",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "false",
+            "TaskNumber": 4
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "BedLight&8",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "dButtons2",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 5
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Inside&984590&5?°C",
+                    "NrDecimals": 1,
+                    "Value": 0.0
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Outside&143789&5?°C",
+                    "NrDecimals": 1,
+                    "Value": 0.0
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "noVal",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "bigVal",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 7
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "?°C",
+                    "NrDecimals": 1,
+                    "Value": 19.9
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "?H",
+                    "NrDecimals": 0,
+                    "Value": 43
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "PressureXX",
+                    "NrDecimals": 2,
+                    "Value": 1024.11
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 60,
+            "Type": "Environment - BMx280",
+            "TaskName": "Livingroom",
+            "TaskDeviceNumber": 28,
+            "TaskEnabled": "true",
+            "TaskNumber": 8
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Analog",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Analog input - internal",
+            "TaskName": "",
+            "TaskDeviceNumber": 2,
+            "TaskEnabled": "false",
+            "TaskNumber": 9
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Temperature",
+                    "NrDecimals": 2,
+                    "Value": 24.43
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Humidity",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Pressure",
+                    "NrDecimals": 2,
+                    "Value": 1016.75
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "true"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 10,
+            "Type": "Environment - BMx280",
+            "TaskName": "SensorXX",
+            "TaskDeviceNumber": 28,
+            "TaskEnabled": "true",
+            "TaskNumber": 10
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "?°C",
+                    "NrDecimals": 1,
+                    "Value": 19.8
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "?H",
+                    "NrDecimals": 0,
+                    "Value": 57
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 60,
+            "Type": "Environment - DHT11/12/22  SONOFF2301/7021",
+            "TaskName": "Bedroom",
+            "TaskDeviceNumber": 5,
+            "TaskEnabled": "true",
+            "TaskNumber": 11
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "?°C",
+                    "NrDecimals": 1,
+                    "Value": 23.6
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "?H",
+                    "NrDecimals": 0,
+                    "Value": 43
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "PressureXX",
+                    "NrDecimals": 2,
+                    "Value": 1023.42
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 60,
+            "Type": "Environment - BMx280",
+            "TaskName": "Bathroom",
+            "TaskDeviceNumber": 28,
+            "TaskEnabled": "true",
+            "TaskNumber": 12
+        }
+    ],
+    "TTL": 1000
+}
+var IP2 = {
+    "System": {
+        "Load": 9.01,
+        "Load LC": 440,
+        "Build": 20221015,
+        "Git Build": "My Build: Oct 15 2022 14:57:52",
+        "System Libraries": "ESP82xx Core 2843a5ac, NONOS SDK 2.2.2-dev(38a443e), LWIP: 2.1.2 PUYA support",
+        "Plugin Count": 8,
+        "Plugin Description": "[No Debug Log]",
+        "Build Time": "Oct 15 2022 14:57:48",
+        "Binary Filename": "ESP_Easy_mega_20221015_custom_ESP8266_4M1M",
+        "Local Time": "2023-01-27 11:08:01",
+        "Time Source": "NTP",
+        "Time Wander": -0.008,
+        "Use NTP": "true",
+        "Unit Number": 2,
+        "Unit Name": "Junkers",
+        "Uptime": 48289,
+        "Uptime (ms)": 2898014684,
+        "Last Boot Cause": "Exception",
+        "Reset Reason": "Exception",
+        "CPU Eco Mode": "true",
+        "Heap Max Free Block": 6960,
+        "Heap Fragmentation": 38,
+        "Free RAM": 11288,
+        "Free Stack": 3520,
+        "ESP Chip Model": "ESP8266",
+        "Sunrise": "7:08",
+        "Sunset": "19:15",
+        "Timezone Offset": 60,
+        "Latitude": 0.00,
+        "Longitude": 0.00,
+        "Syslog Log Level": "None",
+        "Serial Log Level": "None",
+        "Web Log Level": "None"
+    },
+    "WiFi": {
+        "Hostname": "Heating",
+        "IP Address": "IP2",
+        "RSSI": -26
+    },
+    "nodes": [
+        {
+            "nr": 1,
+            "name": "Main",
+            "ip": "IP1",
+        }, {
+            "nr": 2,
+            "name": "Heating",
+            "ip": "IP2",
+        }, {
+            "nr": 3,
+            "name": "Bedroom",
+            "ip": "IP3",
+        }, {
+            "nr": 4,
+            "name": "NeoPixel",
+            "ip": "IP4",
+        }],
+    "Sensors": [
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "setpoint",
+                    "NrDecimals": 1,
+                    "Value": 20.5
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "heating",
+                    "NrDecimals": 0,
+                    "Value": 1
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "mode",
+                    "NrDecimals": 0,
+                    "Value": 1
+                },
+                {
+                    "ValueNumber": 4,
+                    "Name": "timeout",
+                    "NrDecimals": 0,
+                    "Value": 0
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 30,
+            "Type": "Display - OLED SSD1306/SH1106 Thermo",
+            "TaskName": "Day",
+            "TaskDeviceNumber": 109,
+            "TaskEnabled": "true",
+            "TaskNumber": 1
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "setpoint",
+                    "NrDecimals": 1,
+                    "Value": 18.5
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "heating",
+                    "NrDecimals": 0,
+                    "Value": 0
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "mode",
+                    "NrDecimals": 0,
+                    "Value": 1
+                },
+                {
+                    "ValueNumber": 4,
+                    "Name": "timeout",
+                    "NrDecimals": 0,
+                    "Value": 0
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 30,
+            "Type": "Display - OLED SSD1306/SH1106 Thermo",
+            "TaskName": "Night",
+            "TaskDeviceNumber": 109,
+            "TaskEnabled": "false",
+            "TaskNumber": 2
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "⇩?C",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "⇧?C",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Boost",
+                    "NrDecimals": 0,
+                    "Value": 0
+                },
+                {
+                    "ValueNumber": 4,
+                    "Name": "Day",
+                    "NrDecimals": 0,
+                    "Value": 1
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "dButtons",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 3
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "btnState",
+                    "NrDecimals": 0,
+                    "Value": 1
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Switch input - Switch",
+            "TaskName": "RelayXX",
+            "TaskDeviceNumber": 1,
+            "TaskEnabled": "true",
+            "TaskNumber": 4
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Value",
+                    "NrDecimals": 0,
+                    "Value": 29
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Result",
+                    "NrDecimals": 0,
+                    "Value": 0
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "countXX",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 5
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Counter",
+                    "NrDecimals": 0,
+                    "Value": 29
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Switch Input - Rotary Encoder",
+            "TaskName": "RotaryXX",
+            "TaskDeviceNumber": 59,
+            "TaskEnabled": "true",
+            "TaskNumber": 6
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Temperature?°C",
+                    "NrDecimals": 1,
+                    "Value": 20.1
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Setpoint?°C",
+                    "NrDecimals": 1,
+                    "Value": 20.5
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Humidity?H",
+                    "NrDecimals": 0,
+                    "Value": 43
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "bigValC",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 7
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Temperature",
+                    "NrDecimals": 1,
+                    "Value": 20.1
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Humidity",
+                    "NrDecimals": 0,
+                    "Value": 43
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Pressure",
+                    "NrDecimals": 2,
+                    "Value": 1024.84
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "true"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 10,
+            "Type": "Environment - BMx280",
+            "TaskName": "sensorXX",
+            "TaskDeviceNumber": 28,
+            "TaskEnabled": "true",
+            "TaskNumber": 8
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "State",
+                    "NrDecimals": 0,
+                    "Value": 0
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Switch input - Switch",
+            "TaskName": "ButtonXX",
+            "TaskDeviceNumber": 1,
+            "TaskEnabled": "true",
+            "TaskNumber": 9
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "DayMode",
+                    "NrDecimals": 4,
+                    "Value": 430.1280
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "tSlider",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 10
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Output",
+                    "NrDecimals": 0,
+                    "Value": 1
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 60,
+            "Type": "Regulator - Level Control",
+            "TaskName": "timekeepXX",
+            "TaskDeviceNumber": 21,
+            "TaskEnabled": "true",
+            "TaskNumber": 11
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Temperature",
+                    "NrDecimals": 2,
+                    "Value": 23.41
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Humidity",
+                    "NrDecimals": 2,
+                    "Value": 43.24
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Pressure",
+                    "NrDecimals": 2,
+                    "Value": 1024.19
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Environment - BMx280",
+            "TaskName": "Sensor",
+            "TaskDeviceNumber": 28,
+            "TaskEnabled": "false",
+            "TaskNumber": 12
+        }
+    ],
+    "TTL": 1000
+}
+var IP3 = {
+    "System": {
+        "Load": 5.06,
+        "Load LC": 488,
+        "Build": 20116,
+        "Git Build": "My Build: Jul 18 2022 17:46:16",
+        "System Libraries": "ESP82xx Core 2843a5ac, NONOS SDK 2.2.2-dev(38a443e), LWIP: 2.1.2 PUYA support",
+        "Plugin Count": 10,
+        "Plugin Description": "[IR]",
+        "Local Time": "2023-01-27 11:15:38",
+        "Time Source": "NTP",
+        "Time Wander": 0.004,
+        "Use NTP": "true",
+        "Unit Number": 3,
+        "Unit Name": "Bedroom",
+        "Uptime": 12830,
+        "Uptime (ms)": 769912219,
+        "Last Boot Cause": "Cold Boot",
+        "Reset Reason": "Power On",
+        "CPU Eco Mode": "true",
+        "Free RAM": 14448,
+        "Free Stack": 3568,
+        "Sunrise": "7:08",
+        "Sunset": "19:15",
+        "Timezone Offset": 60,
+        "Latitude": 0.00,
+        "Longitude": 0.00
+    },
+    "WiFi": {
+        "Hostname": "Bedroom",
+        "IP Address": "IP3",
+        "RSSI": -47
+    },
+    "nodes": [
+        {
+            "nr": 1,
+            "name": "Main",
+            "ip": "IP1",
+        }, {
+            "nr": 2,
+            "name": "Heating",
+            "ip": "IP2",
+        }, {
+            "nr": 3,
+            "name": "Bedroom",
+            "ip": "IP3",
+        }, {
+            "nr": 4,
+            "name": "NeoPixel",
+            "ip": "IP4",
+        }],
+    "Sensors": [
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "State",
+                    "NrDecimals": 0,
+                    "Value": 0
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Switch input - Switch",
+            "TaskName": "ButtonXX",
+            "TaskDeviceNumber": 1,
+            "TaskEnabled": "true",
+            "TaskNumber": 1
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "btnState",
+                    "NrDecimals": 0,
+                    "Value": 0
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 2,
+            "Type": "Switch input - Switch",
+            "TaskName": "Relay",
+            "TaskDeviceNumber": 1,
+            "TaskEnabled": "true",
+            "TaskNumber": 2
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "IR",
+                    "NrDecimals": 0,
+                    "Value": 2104
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Communication - IR Receive (TSOP4838)",
+            "TaskName": "irXX",
+            "TaskDeviceNumber": 16,
+            "TaskEnabled": "true",
+            "TaskNumber": 4
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Temperature",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Humidity",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Pressure",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Environment - BMx280",
+            "TaskName": "sensor",
+            "TaskDeviceNumber": 28,
+            "TaskEnabled": "false",
+            "TaskNumber": 8
+        },
+        {
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "Sensor",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "false",
+            "TaskNumber": 9
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Temperature?°C",
+                    "NrDecimals": 1,
+                    "Value": 19.7
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Humidity?H",
+                    "NrDecimals": 0,
+                    "Value": 55
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "true"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 60,
+            "Type": "Environment - DHT11/12/22  SONOFF2301/7021",
+            "TaskName": "bigVal",
+            "TaskDeviceNumber": 5,
+            "TaskEnabled": "true",
+            "TaskNumber": 11
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Temperature",
+                    "NrDecimals": 2,
+                    "Value": 23.36
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Humidity",
+                    "NrDecimals": 2,
+                    "Value": 43.19
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Pressure",
+                    "NrDecimals": 2,
+                    "Value": 1024.21
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Environment - BMx280",
+            "TaskName": "Sensor",
+            "TaskDeviceNumber": 28,
+            "TaskEnabled": "false",
+            "TaskNumber": 12
+        }
+    ],
+    "TTL": 1000
+}
+var IP4 = {
+    "System": {
+        "Load": 3.63,
+        "Load LC": 9026,
+        "Build": 20230126,
+        "Git Build": "pygit2_not_installed",
+        "System Libraries": "ESP82xx Core 2843a5ac, NONOS SDK 2.2.2-dev(38a443e), LWIP: 2.1.2 PUYA support",
+        "Plugin Count": 52,
+        "Plugin Description": "[Normal][NeoPixel][No Debug Log]",
+        "Build Time": "Jan 26 2023 21:33:24",
+        "Binary Filename": "ESP_Easy_mega_20230126_neopixel_ESP8266_4M1M",
+        "Local Time": "2023-01-27 08:05:20",
+        "Time Source": "ESPEasy p2p (66)",
+        "Time Wander": 38.6,
+        "Use NTP": "false",
+        "Unit Number": 4,
+        "Unit Name": "NeoPixel",
+        "Uptime": 543,
+        "Uptime (ms)": 32620313,
+        "Last Boot Cause": "Soft Reboot",
+        "Reset Reason": "Software/System restart",
+        "CPU Eco Mode": "false",
+        "Free RAM": 11864,
+        "Free Stack": 3552,
+        "ESP Chip Model": "ESP8266",
+        "Sunrise": "6:08",
+        "Sunset": "18:15",
+        "Timezone Offset": 0,
+        "Latitude": 0.00,
+        "Longitude": 0.00,
+        "Syslog Log Level": "None",
+        "Serial Log Level": "Info",
+        "Web Log Level": "None"
+    },
+    "WiFi": {
+        "Hostname": "NeoPixel",
+        "IP Address": "IP4",
+        "RSSI": -61
+    },
+    "nodes": [
+        {
+            "nr": 1,
+            "name": "Main",
+            "ip": "IP1",
+        }, {
+            "nr": 2,
+            "name": "Heating",
+            "ip": "IP2",
+        }, {
+            "nr": 3,
+            "name": "Bedroom",
+            "ip": "IP3",
+        }, {
+            "nr": 4,
+            "name": "NeoPixel",
+            "ip": "IP4",
+        }],
+    "Sensors": [
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Mode",
+                    "NrDecimals": 0,
+                    "Value": 0
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Lastmode",
+                    "NrDecimals": 0,
+                    "Value": 0
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Fadetime",
+                    "NrDecimals": 0,
+                    "Value": 1000
+                },
+                {
+                    "ValueNumber": 4,
+                    "Name": "Fadedelay",
+                    "NrDecimals": 0,
+                    "Value": 20
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Output - NeoPixel (BusFX)",
+            "TaskName": "rXX",
+            "TaskDeviceNumber": 128,
+            "TaskEnabled": "true",
+            "TaskNumber": 1
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "h",
+                    "NrDecimals": 2,
+                    "Value": 306.00
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "s",
+                    "NrDecimals": 2,
+                    "Value": 21.00
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "v",
+                    "NrDecimals": 2,
+                    "Value": 56.00
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "neoPixel",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 2
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Enable",
+                    "NrDecimals": 2,
+                    "Value": 1.00
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "dButtons",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 3
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Task1",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Task2",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Task3",
+                    "NrDecimals": 2,
+                    "Value": 0.00
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 0,
+            "Type": "Generic - Dummy Device",
+            "TaskName": "dButtons2",
+            "TaskDeviceNumber": 33,
+            "TaskEnabled": "true",
+            "TaskNumber": 4
+        },
+        {
+            "TaskValues": [
+                {
+                    "ValueNumber": 1,
+                    "Name": "Color",
+                    "NrDecimals": 0,
+                    "Value": 16666624
+                },
+                {
+                    "ValueNumber": 2,
+                    "Name": "Brightness",
+                    "NrDecimals": 0,
+                    "Value": 255
+                },
+                {
+                    "ValueNumber": 3,
+                    "Name": "Type",
+                    "NrDecimals": 0,
+                    "Value": 2
+                }],
+            "DataAcquisition": [
+                {
+                    "Controller": 1,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 2,
+                    "IDX": 0,
+                    "Enabled": "false"
+                },
+                {
+                    "Controller": 3,
+                    "IDX": 0,
+                    "Enabled": "false"
+                }],
+            "TaskInterval": 60,
+            "Type": "Output - NeoPixel (Candle)",
+            "TaskName": "zXX",
+            "TaskDeviceNumber": 42,
+            "TaskDeviceGPIO1": 2,
+            "TaskEnabled": "false",
+            "TaskNumber": 5
+        }
+    ],
+    "TTL": 1000
+}
