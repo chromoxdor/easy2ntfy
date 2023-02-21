@@ -42,7 +42,7 @@ var myJson;
 
 function addChan() {
     if (document.getElementById('inputChannel').offsetHeight === 0) {
-        document.getElementById("inputChannel").style.height = "150px";
+        document.getElementById("inputChannel").style.height = "160px";
         document.getElementById('addBtn').classList.add("change");
         enterLastinput()
     } else { closeAddChan() }
@@ -53,10 +53,12 @@ function closeAddChan() {
 function submitChan() {
     chanName = document.getElementById("channelNa").value;
     chanNumber = document.getElementById("channelNr").value;
+    chanServer = document.getElementById("channelSrv").value;
+    if (!chanServer) { chanServer = "ntfy.sh" }
     if (chanName && chanNumber) {
         //console.log('ntfy_' + chanName, chanNumber);
         //Cookies.set('ntfy_' + chanName, chanNumber, { expires: 99999})
-        document.cookie = "ntfy_" + chanName + "=" + chanNumber + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
+        document.cookie = "ntfy_" + chanName + "=" + chanServer + '/' + chanNumber + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
         document.getElementById("inputChannel").style.height = "0";
         document.getElementById("channelNa").value = "";
         document.getElementById("channelNr").value = "";
@@ -141,7 +143,7 @@ async function fetchNtfy() {
     if (ntfyChannel) {
         sendReady();
         setInterval(sendReady, 30000);
-        const eventSource = new EventSource('https://ntfy.sh/' + ntfyChannel + '_json/sse');
+        const eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
         eventSource.onmessage = (e) => {
             if (JSON.parse(e.data).message) {
                 ntfyJson = JSON.parse(e.data).message;
@@ -154,7 +156,7 @@ async function fetchNtfy() {
 
 async function sendReady() {
     console.log("ready")
-    fetch('https://ntfy.sh/' + ntfyChannel + '?tags=123', {
+    fetch('https://' + ntfyChannel + '?tags=123', {
         method: 'POST',
         headers: {
             'Title': 'send',
@@ -728,38 +730,38 @@ function openSys() {
     }
 }
 function getNodes(utton, allNodes, hasIt) {
-        if ((Date.now() - responseTime) < 5000) {
-            let html4 = '';
-            nInf = myJson.nodes;
-            let i = -1;
-            myJson.nodes.forEach(node => {
-                i++
-                if (node.nr == myParam) { if (hasParams) { nodeChange(i); hasParams = 0; } }
-                if (node.nr === unitNr1) { if (node.nr === unitNr) { styleN = "&#8857;&#xFE0E;"; } else { styleN = "&#8858;&#xFE0E;"; } }
-                else if (node.nr === unitNr) { styleN = "&#183;&#xFE0E;"; } else { styleN = ""; }
-                html4 += '<div class="menueItem"><div class="serverUnit" style="text-align: center;">' + styleN + '</div><div id="' + node.name + '" class="nc" onclick="sendUpdate(); nodeChange(' + i + ');iFr();">' + node.name + '<span class="numberUnit">' + node.nr + '</span></div></div>';
-                if (utton || allNodes) {
-                    if (allNodes) {
-                        if (node.nr === unitNr1) { fetch(evnT + utton + 'Long'); }
-                        else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Long"'); }
-                    }
-                    else if (isittime) {
-                        if (node.nr === unitNr1) { fetch(evnT + utton + 'Event'); }
-                        else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Event"'); }
-                    }
+    if ((Date.now() - responseTime) < 5000) {
+        let html4 = '';
+        nInf = myJson.nodes;
+        let i = -1;
+        myJson.nodes.forEach(node => {
+            i++
+            if (node.nr == myParam) { if (hasParams) { nodeChange(i); hasParams = 0; } }
+            if (node.nr === unitNr1) { if (node.nr === unitNr) { styleN = "&#8857;&#xFE0E;"; } else { styleN = "&#8858;&#xFE0E;"; } }
+            else if (node.nr === unitNr) { styleN = "&#183;&#xFE0E;"; } else { styleN = ""; }
+            html4 += '<div class="menueItem"><div class="serverUnit" style="text-align: center;">' + styleN + '</div><div id="' + node.name + '" class="nc" onclick="sendUpdate(); nodeChange(' + i + ');iFr();">' + node.name + '<span class="numberUnit">' + node.nr + '</span></div></div>';
+            if (utton || allNodes) {
+                if (allNodes) {
+                    if (node.nr === unitNr1) { fetch(evnT + utton + 'Long'); }
+                    else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Long"'); }
                 }
-            })
-            i = 0
-            document.getElementById('menueList').innerHTML = html4;
-            if (hasParams) {
-                let html = '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">can not find node # ' + myParam + '...</div></div>';
-                document.getElementById('sensorList').innerHTML = html;
-                //changeCss()
-                hasParams = 0;
-                setTimeout(fetchJson, 3000);
+                else if (isittime) {
+                    if (node.nr === unitNr1) { fetch(evnT + utton + 'Event'); }
+                    else { fetch('/control?cmd=SendTo,' + node.nr + ',"event,' + utton + 'Event"'); }
+                }
             }
-            else { if (!nIV) { setTimeout(fetchJson, 1000); } }
+        })
+        i = 0
+        document.getElementById('menueList').innerHTML = html4;
+        if (hasParams) {
+            let html = '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">can not find node # ' + myParam + '...</div></div>';
+            document.getElementById('sensorList').innerHTML = html;
+            //changeCss()
+            hasParams = 0;
+            setTimeout(fetchJson, 3000);
         }
+        //else { if (!nIV) { setTimeout(fetchJson, 1000); } }
+    }
 }
 
 function sendUpdate() {
@@ -894,8 +896,8 @@ async function getUrl(url, title) {
     let controller = new AbortController();
     setTimeout(() => controller.abort(), 5000);
     try {
-        console.log('https://ntfy.sh/'+ntfyChannel+'?title=' + title + '&message=' + url)
-        response = await fetch('https://ntfy.sh/'+ntfyChannel+'?title=' + title + '&message=' + url, {
+        console.log('https://' + ntfyChannel + '?title=' + title + '&message=' + url)
+        response = await fetch('https://' + ntfyChannel + '?title=' + title + '&message=' + url, {
             method: 'POST',
             //mode:'no-cors',
             headers: {
