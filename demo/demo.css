@@ -617,6 +617,11 @@ button.remove {
     color: white;
 }
 
+.chanBtnSelectRed {
+    background: brown;
+    color: white;
+}
+
 .channelName {
     font-size: 10px;
     color: #adadad;

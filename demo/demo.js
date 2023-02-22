@@ -42,6 +42,7 @@ var myJson;
 var nodeUpdate;
 var responseStatus;
 var responseTime = 0;
+var isSSE = false;
 
 
 //------------------------------------channel & cookie handling------------------------------------------------------
@@ -72,7 +73,7 @@ function submitChan() {
     generateChan()
     closeAddChan()
 }
-function generateChan() {
+function generateChan(red) {
     cookieObj = str_obj(document.cookie);
     let html5 = '';
     Object.entries(cookieObj).forEach(entry => {
@@ -83,11 +84,20 @@ function generateChan() {
         const [key, value] = entry;
         if (key.includes("ntfy_")) {
             newkey = key.split("_")[1];
-            if (selectVal && value == selectVal) { btnselect = "chanBtnSelect" } else { btnselect = "" }
+            if (selectVal && value == selectVal) {
+                if (red) {
+                    btnselect = "chanBtnSelectRed"
+                } else {
+                btnselect = "chanBtnSelect";
+                }
+            } else {
+                btnselect = "";
+            }
             html5 += '<div class="channelItem"><button class="buttonUnit ' + btnselect + '" style="text-align: center;" onclick="setChannel(this);"><div class="chanName" id="' + newkey + '">' + newkey + '</div><div class="channelName">' + value + '</div></button><button class="remove" onclick="delChan(\'' + key + '\',\'' + value + '\')">-</button></div>';
         }
     });
     document.getElementById('channelList').innerHTML = html5;
+    longPressB();
 }
 function str_obj(str) {
     str = str.split('; ');
@@ -100,6 +110,7 @@ function str_obj(str) {
 }
 function setChannel(data) {
     ntfyChannel = data.children[1].textContent;
+    console.log(ntfyChannel);
     document.cookie = "*selectedChannel=" + ntfyChannel + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
     chanBtns = document.querySelectorAll(".buttonUnit");
     chanBtns.forEach(chanBtn => {
@@ -148,26 +159,43 @@ async function fetchNtfy() {
         const [key, value] = entry;
         if (key == "*selectedChannel") { ntfyChannel = value };
     });
+    console.log(ntfyChannel);
     if (ntfyChannel) {
         sendReady();
         setInterval(sendReady, 60000);
         console.log("sending something")
-        const eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
+        if (isSSE) {
+            eventSource.close();
+        }
+        eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
+        isSSE = true;
         eventSource.onmessage = (e) => {
-            if (JSON.parse(e.data).message) {
-                //ntfyJson = IP1;
-                ntfyJson = JSON.parse(e.data).message;
-                fetchJson(ntfyJson)
-                console.log("yes");
+            dataNtfy = JSON.parse(e.data)
+            if (dataNtfy) {
+                if (dataNtfy.message == "killed") {
+                    alert(newkey + "has been set to read only. Please reset device for full functionality");
+                } else {
+                    if (dataNtfy.title == "readonly") {
+                        generateChan("1");
+                    }
+                    //ntfyJson = IP1;
+                    ntfyJson = dataNtfy.message;
+                    fetchJson(ntfyJson)
+                    console.log("yes");
+                };
             } else console.log("no");
         };
+
     }
+    generateChan();
+    longPressS();
 }
 
 async function sendReady() {
     console.log("ready")
     fetch('https://' + ntfyChannel, {
         method: 'POST',
+        //mode:'no-cors'
         headers: {
             'Title': 'send',
             'Cache': 'no'
@@ -443,7 +471,7 @@ function fetchJson(ntfyJson) {
             setInterval(getTS, 10000);
             getTS();
             getNodes();
-            longPressS();
+            //longPressS();
             //longPressN();
             unitNr1 = myJson.System['Unit Number'];
             /*nP2 = 'http://' + myJson.WiFi['IP Address'] + '/devices';
@@ -461,9 +489,11 @@ function fetchJson(ntfyJson) {
         changeCss();
         resizeText();
         longPressB();
+        longPressS();
         if (event && dataT.length) { dataT2 = []; getTS(); }
     }
 }
+
 async function getTS() {
     if (dataT) {
         for (Array of dataT) {
@@ -854,7 +884,7 @@ function openChanSelection() {
 
 //function iFr() { if (isOpen === 1) { document.getElementById('framie').innerHTML = '<iframe src="' + nP2 + '"></iframe>'; closeNav(); } }
 function topF() { document.body.scrollTop = 0; document.documentElement.scrollTop = 0; }
-function longPressN() { document.getElementById('mOpen').addEventListener('long-press', function (e) { window.location.href = nP; }); }
+//function longPressN() { document.getElementById('mOpen').addEventListener('long-press', function (e) { window.location.href = nP; }); }
 function longPressS() {
     document.getElementById('closeBtn').addEventListener('long-press', function (e) {
         if (cooK.includes("Snd=1")) { playSound(500); document.cookie = "Snd=0; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;" }
@@ -864,8 +894,17 @@ function longPressS() {
 }
 
 function longPressB() {
+    console.log("dsds1");
     var executed = false;
     const longButtons = document.querySelectorAll(".clickables");
+    const longButtonChans = document.querySelectorAll(".channelItem");
+    longButtonChans.forEach(longButtonChan => {
+        console.log("dsds2");
+        longButtonChan.addEventListener('long-press', function (e) {
+            console.log("dsds3");
+            getUrl("", "kill");
+        });
+    });
     longButtons.forEach(longButton => {
         longButton.addEventListener('long-press', function (e) {
             const lBName = longButton.querySelector(".sensors");
