@@ -44,6 +44,9 @@ var responseStatus;
 var responseTime = 0;
 var isSSE = false;
 var html5;
+var selectedChan = false;
+var eventSource;
+var readyIV;
 
 //------------------------------------channel & cookie handling------------------------------------------------------
 function addChan() {
@@ -72,6 +75,7 @@ function submitChan() {
     closeAddChan()
 }
 function generateChan(red) {
+    selectedChan = false;
     cookieObj = str_obj(document.cookie);
     html5 = '';
     Object.entries(cookieObj).forEach(entry => {
@@ -88,6 +92,7 @@ function generateChan(red) {
                 } else {
                     btnselect = "chanBtnSelect";
                 }
+                selectedChan = true;
             } else {
                 btnselect = "";
             }
@@ -96,9 +101,16 @@ function generateChan(red) {
     });
     if (html5) {
         document.getElementById('channelList').innerHTML = html5;
-        if (!document.cookie.includes("*selectedChannel")) {
+        if (!document.cookie.includes("*selectedChannel") || !selectedChan) {
             clearHtml();
             document.getElementById('sensorList').innerHTML = '<pre class="noChan">Please select a channel.<pre>';
+            if (!selectedChan) {
+                clearTimeout(readyIV);
+                document.cookie = "*selectedChannel=" +
+                    ";expires=Thu, 01 Jan 1970 00:00:01 GMT"; 
+                    console.log("stopping sse...");
+                    eventSource?.close();
+            }
         }
     } else {
         clearHtml();
@@ -172,12 +184,14 @@ async function fetchNtfy() {
         if (key == "*selectedChannel") { ntfyChannel = value };
     });
     console.log(ntfyChannel);
+    clearTimeout(readyIV);
     if (ntfyChannel) {
         sendReady();
-        setInterval(sendReady, 60000);
+        readyIV = setInterval(sendReady, 10000);
         if (isSSE) {
+            console.log("restarting sse...");
             eventSource.close();
-        }
+        } else {console.log("starting sse...");}
         eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
         isSSE = true;
         eventSource.onmessage = (e) => {
@@ -204,7 +218,7 @@ async function fetchNtfy() {
 
 async function sendReady() {
     console.log("ready")
-    getUrl("","send");
+    getUrl("", "send");
 }
 
 //------------------------------------------------------------------------------------------------------
@@ -878,7 +892,7 @@ function openChanSelection() {
     if (!isOpen) {
         document.getElementById('framie').style.right = "0";
         isOpen = 1;
-    } else { document.getElementById("framie").style.right = "-280px"; isOpen = 0; closeAddChan();}
+    } else { document.getElementById("framie").style.right = "-280px"; isOpen = 0; closeAddChan(); }
 }
 
 //function iFr() { if (isOpen === 1) { document.getElementById('framie').innerHTML = '<iframe src="' + nP2 + '"></iframe>'; closeNav(); } }
@@ -972,7 +986,7 @@ async function getUrl(url, title) {
         } catch (error) {
             console.error(error);
             clearHtml();
-            document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you entered the right server?\nIs your Server online and reachable?<pre>';
+            document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you enter the correct server?\nIs your Server online and reachable?<pre>';
         }
         //return response;
     }

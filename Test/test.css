@@ -39,7 +39,13 @@ body {
     text-align: center;
     height: 0;
     transition: 0.5s;
+    -ms-overflow-style: none;
+      scrollbar-width: none;
 }
+
+#inputChannel::-webkit-scrollbar {
+    display: none;
+  }
 
 #unitId {
     top: 2%;
