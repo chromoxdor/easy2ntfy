@@ -34,21 +34,11 @@ body {
     justify-content: center;
 }
 
-#framie {
-    height: 100%;
-    transition: 0.8s;
-    position: relative;
-    z-index: 2;
-    padding-bottom: 60px;
-    left: 1px;
-}
-
-iframe {
-    width: 100%;
-    height: 100%;
-    border: 0;
-    background-color: white;
-    box-shadow: 4px 0 13px -7px #000000;
+#inputChannel {
+    overflow: auto;
+    text-align: center;
+    height: 0;
+    transition: 0.5s;
 }
 
 #unitId {
@@ -166,7 +156,8 @@ iframe {
 }
 
 .clickables:active,
-.push:active {
+.push:active,
+button:active {
     transform: scale(0.95);
     -webkit-transform: scale(0.95);
     transition: 0.1s
@@ -373,7 +364,7 @@ iframe {
     width: inherit;
 }
 
-input:focus::placeholder {
+.vInputs:focus::placeholder {
     opacity: 0.2;
 }
 
@@ -423,7 +414,7 @@ input[type=number] {
     text-align: end;
 }
 
-input::placeholder {
+.vInputs::placeholder {
     opacity: 1;
     color: white;
 }
@@ -445,20 +436,25 @@ input::placeholder {
     justify-content: space-between;
 }
 
+#framie {
+    right: -280px;
+}
 .sidenav {
+    left: -280px;
+}
+.sidenav,
+#framie {
     height: 100%;
     width: 280px;
     position: fixed;
     z-index: 20;
     top: 0;
-    left: -280px;
     background-color: #111111d9;
     transition: 0.6s;
     overflow-y: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
-    cursor: pointer;
     justify-content: center;
     color: white;
 }
@@ -487,6 +483,7 @@ input::placeholder {
     bottom: 2%;
     font-size: 35px;
     color: #b3b3b3;
+    cursor: pointer;
 }
 
 #openSys {
@@ -505,6 +502,7 @@ input::placeholder {
     transition: .2s;
     width: max-content;
     max-width: 280px;
+    cursor: pointer;
 }
 
 #menueList::-webkit-scrollbar {
@@ -552,9 +550,96 @@ input::placeholder {
     flex-shrink: 999;
 }
 
+.buttonUnit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 200px;
+}
 
+.channelItem {
+    display: flex;
+    flex-direction: row;
+}
+
+#channelList {
+    overflow: auto;
+}
+
+.bar1, .bar2 {
+    width: 20px;
+    height: 3px;
+    background-color: #b3b3b3;
+    margin: 8px 0;
+    transition: 0.4s;
+  }
+  
+  .bar2 {
+    transform: translate(0, -11px) rotate(90deg);
+  }
+  
+  .change .bar1 {
+    transform: translate(0,0) rotate(-45deg);
+  }
+  
+  .change .bar2 {
+    transform: translate(0,-11px) rotate(45deg);
+  }
+
+  #addBtn {
+    padding: 15px;
+    cursor: pointer;
+}
+.cInputs {
+    height: 30px;
+    border-radius: 5px;
+    padding: 5px;
+    border: 0;
+    margin: 5px;
+    width: -webkit-fill-available;
+}
+
+button {
+	border: 0;
+	border-radius: 5px;
+    color: black;
+	margin: 5px;
+	padding: 5px 15px;
+    cursor: pointer;
+}
+
+button.remove {
+    background: brown;
+    color: white;
+}
+
+.chanBtnSelect {
+    background: #3e88cb;
+    color: white;
+}
+
+.chanBtnSelectRed {
+    background: brown;
+    color: white;
+}
+
+.channelName {
+    font-size: 10px;
+    color: #adadad;
+}
+
+#closeBtn2 {
+    left:20px;
+}
+
+.noChan{
+    padding: 5px;
+    border-radius: 5px;
+    color: gray;
+    text-align: center;
+}
 @media screen and (max-height: 450px) {
-    framie {
+    #framie {
         padding-bottom: 40px;
     }
 
@@ -564,9 +649,6 @@ input::placeholder {
 }
 
 @media screen and (max-width: 799px) {
-    #framie {
-        position: absolute;
-    }
 }
 
 @media screen and (max-width: 450px) {

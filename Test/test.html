@@ -7,21 +7,35 @@
     <link rel="icon"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Crect x='0' y='0' rx='6' ry='6' width='44' height='44' style='fill:%233c3c3b' transform='rotate(0 14 20)'/%3E%3Cg transform='rotate(45 26 23)'%3E%3Crect x='4' y='15' rx='2' ry='2' width='4' height='20' style='fill:%2325a843' /%3E%3Crect x='12' y='7.5' rx='2' ry='2' width='4' height='35' style='fill:%23ffd103'/%3E%3Crect x='20' y='0' rx='2' ry='2' width='4' height='50' style='fill:%23f28d22' /%3E%3Crect x='28' y='7.5' rx='2' ry='2' width='4' height='35' style='fill:%23e9493e'/%3E%3Ccircle cx='41' cy='25' r='5' fill='white' /%3E%3C/g%3E%3C/svg%3E"
         type="image/svg+xml">
-    <link rel="stylesheet" href="http://192.168.1.155:8080/test.css">
-    <script src="http://192.168.1.155:8080/test.js"></script>
+    <link rel="stylesheet" href="demo.css">
+    <script src="demo.json.js"></script>
+    <script src="demo.js"></script>
     <title id="unitT"></title>
 </head>
 
 <body>
     <div id="container">
-        <div id="framie"></div>
+        <div id="framie">
+            <div id="channelList"></div>
+            <div id="addBtn" onclick="addChan(this)">
+                <div class="bars bar1"></div>
+                <div class="bars bar2"></div>
+            </div>
+            <div id="inputChannel" style="height:0">
+                <input type="text" id="channelNa" class="cInputs" name="channelNa" placeholder="Name"><br>
+                <input type="text" id="channelNr" class="cInputs" name="channelNr" placeholder="Channel" onkeydown="return /[\w_-]/i.test(event.key)"><br>
+                <input type="text" id="channelSrv" class="cInputs" name="channelNa" placeholder="Server (ntfy.sh)"><br>
+                <button onclick="submitChan()">Submit</button>
+            </div>
+            <div class="sideNbtn" id="closeBtn2" onclick="openChanSelection()">&times;&#xFE0E;</div>
+        </div>
         <div id="mySidenav" class="sidenav">
             <div id="sysInfo">no info found...</div>
             <div class="menueWrap" id="menueWrap1"></div>
             <div id="menueList"></div>
             <div class="menueWrap" id="menueWrap2"></div>
             <div class="sideNbtn" id="openSys" onclick="openSys(event)">
-                <div id="dateV">20240124/3</div>&#8505;&#xFE0E;
+                <div id="dateV">20230223/a</div>&#8505;&#xFE0E;
             </div>
             <div class="sideNbtn" id="closeBtn" onclick="closeNav()">&times;&#xFE0E;</div>
         </div>
@@ -36,12 +50,13 @@
                 <span id="nOpen" style="font-size:30px;cursor:pointer;background:none;"
                     onclick="openNav(event)">&#9776;&#xFE0E;</span>
                 <span id="mOpen" style="font-size:30px;cursor:pointer;background:none;"
-                    onclick="splitOn(); topF()">&#8962;&#xFE0E;</span>
+                    onclick="openChanSelection();generateChan()">&#8962;&#xFE0E;</span>
             </div>
         </div>
     </div>
     <script>
-        fetchJson();
+        fetchNtfy();
+        //fetchJson();
     </script>
 </body>
 
