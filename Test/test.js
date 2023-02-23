@@ -1002,7 +1002,7 @@ async function getUrl(url, title) {
 function connectionIssues() {
     if (Date.now() - responseTime2 > 70000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">If you are still here reading this you should probably give up and enjoy a walk in the park.<pre>';
+        document.getElementById('sensorList').innerHTML = '<img src="https://legendofmi.com/images/animatedgifs/threeheaded.gif" style="box-shadow: none; image-rendering: pixelated" width="80" height="80" alt="Three-headed Monkey">';
     }
     else if (Date.now() - responseTime2 > 60000) {
         clearHtml();
