@@ -42,6 +42,7 @@ var myJson;
 var nodeUpdate;
 var responseStatus;
 var responseTime = 0;
+var responseTime2 = 0;
 var isSSE = false;
 var html5;
 var selectedChan = false;
@@ -107,9 +108,9 @@ function generateChan(red) {
             if (!selectedChan) {
                 clearTimeout(readyIV);
                 document.cookie = "*selectedChannel=" +
-                    ";expires=Thu, 01 Jan 1970 00:00:01 GMT"; 
-                    console.log("stopping sse...");
-                    eventSource?.close();
+                    ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
+                console.log("stopping sse...");
+                eventSource?.close();
             }
         }
     } else {
@@ -174,6 +175,7 @@ function enterOnInputs() {
 //----------------------------------ntfy handling--------------------------------------------------------------------
 
 async function fetchNtfy() {
+    responseTime2 = Date.now();
     if (document.cookie.includes("*selectedChannel") && document.cookie.includes("ntfy_")) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">trying to connect...<pre>';
@@ -191,7 +193,7 @@ async function fetchNtfy() {
         if (isSSE) {
             console.log("restarting sse...");
             eventSource.close();
-        } else {console.log("starting sse...");}
+        } else { console.log("starting sse..."); }
         eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
         isSSE = true;
         eventSource.onmessage = (e) => {
@@ -206,6 +208,7 @@ async function fetchNtfy() {
                     //ntfyJson = IP1;
                     ntfyJson = dataNtfy.message;
                     fetchJson(ntfyJson)
+                    responseTime2 = Date.now();
                     console.log("received valid json data...");
                 };
             } else console.log("no json data received");
@@ -989,6 +992,14 @@ async function getUrl(url, title) {
             document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you enter the correct server?\nIs your Server online and reachable?<pre>';
         }
         //return response;
+    }
+    if (Date.now() - responseTime2 > 20000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...still trying to connect...\nIs easy2ntfy running?<pre>';
+    }
+    if (Date.now() - responseTime2 > 60000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...hmmmm...still no word from easy2ntfy\nMaybe you should go and get yourself a coffee. &#128521;<pre>';
     }
 }
 
