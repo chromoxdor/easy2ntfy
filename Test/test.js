@@ -1000,21 +1000,25 @@ async function getUrl(url, title) {
 }
 
 function connectionIssues() {
-    if (Date.now() - responseTime2 > 70000) {
+    if (Date.now() - responseTime2 > 80000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<img src="https://legendofmi.com/images/animatedgifs/threeheaded.gif" style="box-shadow: none; image-rendering: pixelated" width="80" height="80" alt="Three-headed Monkey">';
     }
-    else if (Date.now() - responseTime2 > 60000) {
+    else if (Date.now() - responseTime2 > 70000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">If you are still here reading this you should probably give up and enjoy a walk in the park.<pre>';
     }
+    else if (Date.now() - responseTime2 > 60000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">Ok...enough of this!\nDevelopers for good software are hard to find these days.\nInsert disk #22 to start another program.<pre>';
+    }
     else if (Date.now() - responseTime2 > 50000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">Ok...enough of this!\nInsert disk #22 to start another program.<pre>';
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">I was joking. :)<pre>';
     }
     else if (Date.now() - responseTime2 > 40000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">Look behind you!\nA three headed monkey! 🙈 🙉 🙊<pre>';
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">Look behind you!\nA three headed monkey!<pre>';
     }
     else if (Date.now() - responseTime2 > 30000) {
         clearHtml();
@@ -1022,7 +1026,7 @@ function connectionIssues() {
     }
     else if (Date.now() - responseTime2 > 20000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...hmmmm...still no word from easy2ntfy...\nMaybe you should go and get yourself a coffee... &#128521;<pre>';
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...hmmmm...\nStill no word from easy2ntfy.\nMaybe you should go and get yourself a coffee...<pre>';
     }
     else if (Date.now() - responseTime2 > 10000) {
         clearHtml();
