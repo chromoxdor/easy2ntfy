@@ -114,6 +114,7 @@ function generateChan(red) {
             }
         }
     } else {
+        clearTimeout(readyIV);
         clearHtml();
         document.getElementById('channelList').innerHTML = "no channels added...";
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">Add a channel...\n(Click on the house symbol.)<pre>';
@@ -993,14 +994,24 @@ async function getUrl(url, title) {
         }
         //return response;
     }
-    if (Date.now() - responseTime2 > 20000) {
+    if (Date.now() - responseTime2 > 40000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...still trying to connect...\nIs easy2ntfy running?<pre>';
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">Look behind you!\nA three headed monkey! 🙈 🙉 🙊<pre>';
     }
-    if (Date.now() - responseTime2 > 60000) {
+    else if (Date.now() - responseTime2 > 30000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">...hmmmm...still no word from easy2ntfy\nMaybe you should go and get yourself a coffee. &#128521;<pre>';
     }
+    else if (Date.now() - responseTime2 > 20000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...hmmmm...still no word from easy2ntfy\nMaybe you should go and get yourself a coffee. &#128521;<pre>';
+    }
+    else if (Date.now() - responseTime2 > 10000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...still trying to connect...\nIs easy2ntfy running?<pre>';
+    }
+   
+   
 }
 
 function clearHtml() {
