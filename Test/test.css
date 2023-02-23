@@ -644,7 +644,9 @@ button.remove {
     color: gray;
     text-align: center;
     white-space: pre-wrap; 
+    box-shadow: none !important;
 }
+
 @media screen and (max-height: 450px) {
     #framie {
         padding-bottom: 40px;
