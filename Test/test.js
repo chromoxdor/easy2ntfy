@@ -116,6 +116,7 @@ function generateChan(red) {
             }
         }
     } else {
+        clearTimeout(tryconnectIV);
         clearTimeout(readyIV);
         clearHtml();
         document.getElementById('channelList').innerHTML = "no channels added...";
@@ -214,6 +215,7 @@ async function fetchNtfy() {
                     fetchJson(ntfyJson)
                     responseTime2 = Date.now();
                     console.log("received valid json data...");
+                    clearTimeout(tryconnectIV);
                 };
             } else console.log("no json data received");
         };
