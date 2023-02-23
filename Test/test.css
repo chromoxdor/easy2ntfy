@@ -643,6 +643,7 @@ button.remove {
     border-radius: 5px;
     color: gray;
     text-align: center;
+    white-space: pre-wrap; 
 }
 @media screen and (max-height: 450px) {
     #framie {

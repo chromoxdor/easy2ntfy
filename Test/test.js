@@ -994,21 +994,29 @@ async function getUrl(url, title) {
         }
         //return response;
     }
-    if (Date.now() - responseTime2 > 40000) {
+    if (Date.now() - responseTime2 > 60000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">If you are still here reading this you should probably give up and enjoy a walk in the park.<pre>';
+    }
+    else if (Date.now() - responseTime2 > 50000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">Ok...enough of this!\nInsert disk #22 to start another program.<pre>';
+    }
+    else if (Date.now() - responseTime2 > 40000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">Look behind you!\nA three headed monkey! 🙈 🙉 🙊<pre>';
     }
     else if (Date.now() - responseTime2 > 30000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...hmmmm...still no word from easy2ntfy\nMaybe you should go and get yourself a coffee. &#128521;<pre>';
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...or a cup of grog...<pre>';
     }
     else if (Date.now() - responseTime2 > 20000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...hmmmm...still no word from easy2ntfy\nMaybe you should go and get yourself a coffee. &#128521;<pre>';
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...hmmmm...still no word from easy2ntfy...\nMaybe you should go and get yourself a coffee... &#128521;<pre>';
     }
     else if (Date.now() - responseTime2 > 10000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...still trying to connect...\nIs easy2ntfy running?<pre>';
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...still trying to connect...\nIs easy2ntfy actually running?<pre>';
     }
    
    
