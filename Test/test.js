@@ -48,6 +48,7 @@ var html5;
 var selectedChan = false;
 var eventSource;
 var readyIV;
+var tryconnectIV;
 
 //------------------------------------channel & cookie handling------------------------------------------------------
 function addChan() {
@@ -107,6 +108,7 @@ function generateChan(red) {
             document.getElementById('sensorList').innerHTML = '<pre class="noChan">Please select a channel.<pre>';
             if (!selectedChan) {
                 clearTimeout(readyIV);
+                clearTimeout(tryconnectIV);
                 document.cookie = "*selectedChannel=" +
                     ";expires=Thu, 01 Jan 1970 00:00:01 GMT";
                 console.log("stopping sse...");
@@ -180,6 +182,7 @@ async function fetchNtfy() {
     if (document.cookie.includes("*selectedChannel") && document.cookie.includes("ntfy_")) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">trying to connect...<pre>';
+        tryconnectIV = setInterval(connectionIssues, 10000);
     }
     cookieObj = str_obj(document.cookie);
     Object.entries(cookieObj).forEach(entry => {
@@ -190,7 +193,7 @@ async function fetchNtfy() {
     clearTimeout(readyIV);
     if (ntfyChannel) {
         sendReady();
-        readyIV = setInterval(sendReady, 10000);
+        readyIV = setInterval(sendReady, 60000);
         if (isSSE) {
             console.log("restarting sse...");
             eventSource.close();
@@ -994,7 +997,14 @@ async function getUrl(url, title) {
         }
         //return response;
     }
-    if (Date.now() - responseTime2 > 60000) {
+}
+
+function connectionIssues() {
+    if (Date.now() - responseTime2 > 70000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">If you are still here reading this you should probably give up and enjoy a walk in the park.<pre>';
+    }
+    else if (Date.now() - responseTime2 > 60000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">If you are still here reading this you should probably give up and enjoy a walk in the park.<pre>';
     }
@@ -1018,8 +1028,6 @@ async function getUrl(url, title) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">...still trying to connect...\nIs easy2ntfy actually running?<pre>';
     }
-   
-   
 }
 
 function clearHtml() {
