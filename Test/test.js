@@ -286,7 +286,7 @@ function fetchJson(ntfyJson) {
                 htS2 = '<div  class="sensors" style="font-weight:bold;">' + utton + '</div>'
                 exC = !![38].indexOf(sensor.TaskDeviceNumber); //all PluginNR in an array that need to be excluded 
                 exC2 = !sensor.Type?.includes("Display")
-                if (sensor.TaskEnabled === "true" || sensor.TaskEnabled && sensor.TaskValues && !utton.includes("XX") && exC && exC2 && !hasParams) {
+                if ((sensor.TaskEnabled === "true" || sensor.TaskEnabled) && sensor.TaskValues && !utton.includes("XX") && exC && exC2 && !hasParams) {
                     someoneEn = 1;
                     firstItem = true;
                     sensor.TaskValues.forEach(item => {
@@ -478,7 +478,7 @@ function fetchJson(ntfyJson) {
                     html += '</div>';
                     html3 += '</div>';
                 }
-                else if (sensor.TaskEnabled === "true" || sensor.TaskEnabled && !utton.includes("XX") && exC && exC2 && !hasParams) { html += '<div  class="sensorset clickables" onclick="buttonClick(\'' + utton + '\')"><div class="sensors" style="font-weight:bold;">' + utton + '</div><div></div><div></div></div>'; someoneEn = 1; document.getElementById('sensorList').innerHTML = html; }
+                else if ((sensor.TaskEnabled === "true" || sensor.TaskEnabled) && !utton.includes("XX") && exC && exC2 && !hasParams) { html += '<div  class="sensorset clickables" onclick="buttonClick(\'' + utton + '\')"><div class="sensors" style="font-weight:bold;">' + utton + '</div><div></div><div></div></div>'; someoneEn = 1; document.getElementById('sensorList').innerHTML = html; }
             });
             if (!someoneEn && !hasParams) {
                 html += '<div class="sensorset clickables" onclick="splitOn(); topF()"> <div class="sensors" style="font-weight:bold;">no tasks enabled or visible...</div>';
