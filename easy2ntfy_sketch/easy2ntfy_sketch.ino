@@ -1,14 +1,7 @@
-/*********
-  Rui Santos
-  Complete project details at http://randomnerdtutorials.com
-*********/
+
 /*#if !defined(ESP8266)
   #error This code is intended to run only on the ESP8266 boards ! Please check your Tools->Board setting.
-#endif
-
-#define _WEBSOCKETS_LOGLEVEL_       2
-
-#define WEBSOCKETS_NETWORK_TYPE     NETWORK_ESP8266_ASYNC*/
+#endif*/
 
 #include <FS.h> //this needs to be first, or it all crashes and burns...
 #include <NTPClient.h>
@@ -381,7 +374,7 @@ void loop()
 
   // websocket listen to ntfyUrl + ntfyChannel if (channelTopic = start and channelTag = pass)
   // run or reset timer 2 minutes
-  // start sending json with ipDefault every 2 min
+  // start sending json with ipDefault every 10 sec
   // PostToNtfy()
   //(else if channelTopic=ip and channelTag=pass)
   // ESPeasyIP = channelTopic;
