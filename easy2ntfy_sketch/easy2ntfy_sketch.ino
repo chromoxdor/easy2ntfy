@@ -453,8 +453,9 @@ void GetJson() {
   filter["System"]["Unit Number"] = true;
   filter["System"]["Load"] = true;
 
-  DynamicJsonDocument doc(20048);
+  DynamicJsonDocument doc(25048);
   // deserializeJson(doc, http.getStream());
+  http.setTimeout(2000);
   DeserializationError error = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
   if (error) {
     Serial.print(F("deserializeJson() failed: "));
@@ -482,7 +483,6 @@ void GetJson() {
 void PostToNtfy() {
   Serial.println();
   Serial.println("----------------------...sending JSON to client----------------------");
-  delay(100);
   String ntfyUrlStr = ntfyUrl;
   String ntfyTopicStr = ntfyTopic;
   ntfyUrlStr = "http://" + ntfyUrlStr + "/" + ntfyTopicStr + topic2;
