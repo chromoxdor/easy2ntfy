@@ -3,15 +3,15 @@
   #error This code is intended to run only on the ESP8266 boards ! Please check your Tools->Board setting.
 #endif*/
 
-#include <FS.h> //this needs to be first, or it all crashes and burns...
+#include <FS.h>  //this needs to be first, or it all crashes and burns...
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266HTTPClient.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
-#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
-#include <ArduinoJson.h> // https://github.com/bblanchon/ArduinoJson
+#include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>  // https://github.com/bblanchon/ArduinoJson
 #include <WebSockets2_Generic.h>
 #define DEBUG_WEBSOCKETS_PORT Serial
 // Debug Level from 0 to 4
@@ -32,12 +32,14 @@ String minifiedPayload2;
 String sendOKStr;
 String toESPcommandStr;
 
+
 unsigned long lastTime = 0;
 unsigned long timerDelay = 10000;
 
 unsigned long lastUpdate = 0;
 unsigned long timerDelay2 = 120000;
 
+String ESPeasyIPchanged;
 const char* sendOK;
 const char* toESPcommand;
 unsigned long receiveTime;
@@ -48,12 +50,12 @@ bool doingItOnce = true;
 // flag for saving data
 bool shouldSaveConfig = false;
 String websockeMsg;
-String topic2 = "_json"; // add this to the ntfy topic to create an extra channel for receiving messages
+String topic2 = "_json";  // add this to the ntfy topic to create an extra channel for receiving messages
 
-const int ledPin = LED_BUILTIN;   // the number of the LED pin
-int ledState = LOW;               // ledState used to set the LED
-unsigned long previousMillis = 0; // will store last time LED was updated
-const long interval = 1000;       // interval at which to blink (milliseconds)
+const int ledPin = LED_BUILTIN;    // the number of the LED pin
+int ledState = LOW;                // ledState used to set the LED
+unsigned long previousMillis = 0;  // will store last time LED was updated
+const long interval = 1000;        // interval at which to blink (milliseconds)
 bool blinkLed = false;
 
 //############################################# GET TIME #########################################
@@ -66,8 +68,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 unsigned long epochTime;
 
 // Function that gets current epoch time
-unsigned long getTime()
-{
+unsigned long getTime() {
   timeClient.update();
   unsigned long now = timeClient.getEpochTime();
   return now;
@@ -76,7 +77,7 @@ unsigned long getTime()
 //############################################# CUSTOM PARAMETERS FOR THE WIFI MANAGER #########################################
 
 //Assign output variables to GPIO pins
-char ESPeasyIP[40] = "0.0.0.0";
+char* ESPeasyIP = "0.0.0.0";
 char ntfyUrl[80] = "ntfy.sh";
 char ntfyTopic[80] = "test123";
 //char ntfyTag[80] = "1234";
@@ -90,12 +91,11 @@ WiFiManagerParameter custom_ntfyTopic("ntfyTopic", "Topic", ntfyTopic, 80);
 //###############################################################################################################################
 
 //################################################### GENERAL VARIABLES #########################################################
-bool blockWM = false; // Change this to false if you want your code to continue to run on the loop void even if you are not conected to any wifi.
+bool blockWM = false;  // Change this to false if you want your code to continue to run on the loop void even if you are not conected to any wifi.
 //###############################################################################################################################
 
 //############################################# SETUP ##########################################
-void setup()
-{
+void setup() {
   Serial.begin(115200);
   delay(3000);
   Serial.println("Setup mode...");
@@ -107,16 +107,13 @@ void setup()
   //---------------------------------------
   // read configuration from FS json
   Serial.println("mounting FS...");
-  if (SPIFFS.begin())
-  {
+  if (SPIFFS.begin()) {
     Serial.println("mounted file system");
-    if (SPIFFS.exists("/config.json"))
-    {
+    if (SPIFFS.exists("/config.json")) {
       // file exists, reading and loading
       Serial.println("reading config file");
       File configFile = SPIFFS.open("/config.json", "r");
-      if (configFile)
-      {
+      if (configFile) {
         Serial.println("opened config file");
         size_t size = configFile.size();
         // Allocate a buffer to store contents of the file.
@@ -125,58 +122,48 @@ void setup()
         DynamicJsonDocument json(1024);
         deserializeJson(json, buf.get(), DeserializationOption::NestingLimit(20));
         serializeJson(json, Serial);
-        if (!json.isNull())
-        {
+        if (!json.isNull()) {
           Serial.println("\nparsed json");
           strcpy(ESPeasyIP, json["ESPeasyIP"]);
           strcpy(ntfyUrl, json["ntfyUrl"]);
           strcpy(ntfyTopic, json["ntfyTopic"]);
           //strcpy(ntfyTag, json["ntfyTag"]);
-        }
-        else
-        {
+        } else {
           Serial.println("failed to load json config");
         }
       }
     }
-  }
-  else
-  {
+  } else {
     Serial.println("failed to mount FS");
   }
-
+  ESPeasyIPchanged = ESPeasyIP;
   //server.begin();  // declare this at the beggining of the code => ESP8266WebServer server(80);
   setupDeviceWM();
 
-  while (WiFi.status() != WL_CONNECTED)
-  {
+  while (WiFi.status() != WL_CONNECTED) {
     delay(200);
     Serial.print(".");
   }
 
-  ws.onMessage(onMessageCallback); // run callback when messages are received
-  ws.onEvent(onEventsCallback);    // run callback when events are occuring
+  ws.onMessage(onMessageCallback);  // run callback when messages are received
+  ws.onEvent(onEventsCallback);     // run callback when events are occuring
   // try to connect to Websockets server
   // bool connected = ws.connect("ntfy.sh", 80, "/test2323/ws");
   String receiveTopic = ntfyTopic;
   Serial.println(receiveTopic);
   bool connected = ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
-  if (connected)
-  {
+  if (connected) {
     Serial.println("Connected!");
     // String WS_msg = String("Hello to Server from ");
     // ws.send(WS_msg);
-  }
-  else
-  {
+  } else {
     Serial.println("Not Connected!");
   }
   ws.ping();
 }
 
 //############################################# WEBSOCKETS ##########################################
-void onMessageCallback(WebsocketsMessage message)
-{
+void onMessageCallback(WebsocketsMessage message) {
   websockeMsg = message.data();
   Serial.println();
   Serial.println("----------------------Websockets message received---------------------");
@@ -184,8 +171,7 @@ void onMessageCallback(WebsocketsMessage message)
   parseWsMessage();
 }
 
-void parseWsMessage()
-{
+void parseWsMessage() {
   DynamicJsonDocument Jcommand(1024);
   deserializeJson(Jcommand, websockeMsg);
   sendOK = Jcommand["title"];
@@ -201,72 +187,63 @@ void parseWsMessage()
   Serial.println(getTime());
   sendOKStr = sendOK;
   toESPcommandStr = toESPcommand;
-  if (sendOKStr == "send")
-  {
+
+  if (sendOKStr == "send" || sendOKStr == "send1") {
     digitalWrite(ledPin, LOW);
     Serial.println("sending data...");
     receiveLoop = true;
     lastUpdate = millis();
-  }
-  else if (sendOKStr == "change_node")
-  {
-    ESPeasyIP = toESPcommandStr;
-  }
-  else if (sendOKStr == "kill")
-  {
+    if (sendOKStr == "send1") {
+      lastTime = millis() - 9000;
+      ESPeasyIPchanged = ESPeasyIP;
+    }  //sending json immediately
+
+  } else if (sendOKStr == "change_node") {
+    ESPeasyIPchanged = toESPcommandStr;
+    lastTime = millis() - 9000;  //sending json immediately
+
+  } else if (sendOKStr == "kill") {
     notkilled = false;
-  }
-  else if (sendOKStr == "command" || sendOKStr == "dualcommand" && receiveLoop && notkilled)
-  {
-    if (abs(getTime() - receiveTime) <= 2)
-    {
-      if (sendOKStr == "command")
-      {
+    lastTime = millis() - 9000;  //sending json immediately
+
+  } else if (sendOKStr == "command" || sendOKStr == "dualcommand" && receiveLoop && notkilled) {
+    if (abs(getTime() - receiveTime) <= 2) {
+      if (sendOKStr == "command") {
         Command2ESP(toESPcommandStr);
-      }
-      else
-        splitCommand(toESPcommandStr)
-    }
-    else
-    {
+      } else
+        splitCommand(toESPcommandStr);
+    } else {
       Serial.println("discarded command..took to long!!!");
     }
   }
   Serial.println("----------------------------------------------------------------------");
 }
 
-void splitCommand(String command)
-{
-  int index = command.IndexOf(' ');
+void splitCommand(String command) {
+  int index = command.indexOf(' ');
   int length = command.length();
   String commandStr1 = command.substring(0, index);
-  String commandStr2 = command.substring(index, length);
+  String commandStr2 = command.substring(index + 1, length);
   Command2ESP(commandStr1);
   //maybe we should wait a little with sending the second command
   Command2ESP(commandStr2);
+  Serial.println(commandStr1);
+  Serial.println(commandStr2);
 }
 
-void onEventsCallback(WebsocketsEvent event, String data)
-{
+void onEventsCallback(WebsocketsEvent event, String data) {
   (void)data;
 
-  if (event == WebsocketsEvent::ConnectionOpened)
-  {
+  if (event == WebsocketsEvent::ConnectionOpened) {
     Serial.println("Connnection Opened");
     analogWrite(ledPin, 1000);
     blinkLed = false;
-  }
-  else if (event == WebsocketsEvent::ConnectionClosed)
-  {
+  } else if (event == WebsocketsEvent::ConnectionClosed) {
     Serial.println("Connnection Closed");
     blinkLed = true;
-  }
-  else if (event == WebsocketsEvent::GotPing)
-  {
+  } else if (event == WebsocketsEvent::GotPing) {
     Serial.println("Got a Ping!");
-  }
-  else if (event == WebsocketsEvent::GotPong)
-  {
+  } else if (event == WebsocketsEvent::GotPong) {
     Serial.println("Got a Pong!");
   }
 }
@@ -274,25 +251,21 @@ void onEventsCallback(WebsocketsEvent event, String data)
 
 //############################################# WIFI MANAGER ##########################################
 //Needs to be called only in the setup void.
-void setupDeviceWM()
-{
+void setupDeviceWM() {
   wm.setConfigPortalBlocking(blockWM);
   // wifiManager.resetSettings();
   wm.addParameter(&custom_ESPeasyIP);
   wm.addParameter(&custom_ntfyUrl);
   wm.addParameter(&custom_ntfyTopic);
-  wm.addParameter(&custom_ntfyTag);
-  if (wm.autoConnect("ESPfetch", "configesp"))
-  {
+  //wm.addParameter(&custom_ntfyTag);
+  if (wm.autoConnect("ESPfetch", "configesp")) {
     // if you get here you have connected to the WiFi
     Serial.println("Connected to wifi network!");
     wm.setPreSaveConfigCallback(saveConfigCallback);
     WiFi.mode(WIFI_STA);
     WiFi.hostname(newHostname.c_str());
     wm.startWebPortal();
-  }
-  else
-  {
+  } else {
     Serial.println("Non blocking config portal running!");
   }
   // call the code down to activate wifi so users can configure the device, event if it's connected to the local network
@@ -301,8 +274,7 @@ void setupDeviceWM()
   server.onNotFound(handleNotFound);
 }
 
-void handleNotFound()
-{
+void handleNotFound() {
   String message = "File Not Found\n\n";
   message += "URI: ";
   message += server.uri();
@@ -311,32 +283,28 @@ void handleNotFound()
   message += "\nArguments: ";
   message += server.args();
   message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++)
-  {
+  for (uint8_t i = 0; i < server.args(); i++) {
     message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
   }
   server.send(404, "text/plain", message);
 }
 
 // callback notifying us of the need to save config
-void saveConfigCallback()
-{
+void saveConfigCallback() {
   Serial.println("Should save config");
   shouldSaveConfig = true;
 }
 
 // This void needs to be called in the loop void so it can handle the WM and the webportal.
-void loopDeviceWM()
-{
+void loopDeviceWM() {
   wm.process();
   server.handleClient();
   // save the custom parameters to FS
-  if (shouldSaveConfig)
-  {
+  if (shouldSaveConfig) {
     strcpy(ESPeasyIP, custom_ESPeasyIP.getValue());
     strcpy(ntfyUrl, custom_ntfyUrl.getValue());
     strcpy(ntfyTopic, custom_ntfyTopic.getValue());
-    strcpy(ntfyTag, custom_ntfyTag.getValue());
+    //strcpy(ntfyTag, custom_ntfyTag.getValue());
     Serial.print("IP:");
     Serial.println(ESPeasyIP);
     Serial.print("Url:");
@@ -344,16 +312,15 @@ void loopDeviceWM()
     Serial.print("topic:");
     Serial.println(ntfyTopic);
     Serial.print("tag:");
-    Serial.println(ntfyTag);
+    //Serial.println(ntfyTag);
     Serial.println("saving config");
     DynamicJsonDocument json(1024);
     json["ESPeasyIP"] = ESPeasyIP;
     json["ntfyUrl"] = ntfyUrl;
     json["ntfyTopic"] = ntfyTopic;
-    json["ntfyTag"] = ntfyTag;
+    //json["ntfyTag"] = ntfyTag;
     File configFile = SPIFFS.open("/config.json", "w");
-    if (!configFile)
-    {
+    if (!configFile) {
       Serial.println("failed to open config file for writing");
     }
     serializeJson(json, Serial);
@@ -367,10 +334,9 @@ void loopDeviceWM()
 //#####################################################################################################
 
 //############################################# LOOP ##################################################
-void loop()
-{
-  loopDeviceWM(); // necessary for WIFI MANAGER
-  ws.poll();      // necessary for WEBSOCKETS
+void loop() {
+  loopDeviceWM();  // necessary for WIFI MANAGER
+  ws.poll();       // necessary for WEBSOCKETS
 
   // websocket listen to ntfyUrl + ntfyChannel if (channelTopic = start and channelTag = pass)
   // run or reset timer 2 minutes
@@ -386,22 +352,17 @@ void loop()
   }*/
 
   //------------------LED--------------------------------
-  if (blinkLed)
-  {
-    if (millis() - previousMillis >= interval)
-    {
+  if (blinkLed) {
+    if (millis() - previousMillis >= interval) {
       // save the last time you blinked the LED
       // Serial.println("Connection issue");
       previousMillis = millis();
       String receiveTopic = ntfyTopic;
       ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
       // if the LED is off turn it on and vice-versa:
-      if (ledState == 900)
-      {
+      if (ledState == 900) {
         ledState = 1024;
-      }
-      else
-      {
+      } else {
         ledState = 900;
       }
       // set the LED with the ledState of the variable:
@@ -409,16 +370,18 @@ void loop()
     }
   }
   //------------------timeout client--------------------------------
-  if ((millis() - lastUpdate) > timerDelay2 && receiveLoop)
-  {
+  if ((millis() - lastUpdate) > timerDelay2 && receiveLoop) {
     receiveLoop = false;
+    ESPeasyIPchanged = ESPeasyIP;
     analogWrite(ledPin, 1000);
+    Serial.println("client timed out...no json will be send anymore");
+    Serial.print("setting IP back to:");
+    Serial.println(ESPeasyIPchanged);
   }
 
   //------------------timer for getting JSON--------------------------------
 
-  if ((millis() - lastTime) > timerDelay && receiveLoop)
-  {
+  if ((millis() - lastTime) > timerDelay && receiveLoop) {
     GetJson();
     lastTime = millis();
   }
@@ -426,26 +389,22 @@ void loop()
 }
 
 //################################### Command 2 ESPeasyIP ##############################################
-void Command2ESP(String toESPcommand)
-{
+void Command2ESP(String toESPcommand) {
   Serial.println();
   Serial.println("----------------------sending command to ESP...---------------------");
-  String ESPeasyPath2 = ESPeasyIP;
+  String ESPeasyPath2 = ESPeasyIPchanged;
   ESPeasyPath2 = "http://" + ESPeasyPath2 + "/" + toESPcommand;
   Serial.println(ESPeasyPath2);
   http3.begin(client, ESPeasyPath2);
   // GET json from ESPeasyIP----------------------------
   int httpResponseCode = http3.GET();
-  if (httpResponseCode > 0)
-  {
+  if (httpResponseCode > 0) {
     Serial.print("HTTP Response code GET: ");
     Serial.println(httpResponseCode);
     Serial.println();
     Serial.println("----------------------sending update...----------------------");
-    lastTime = millis() - 9000;
-  }
-  else
-  {
+    lastTime = millis() - 9000;  //sending json immediately
+  } else {
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
   }
@@ -453,11 +412,11 @@ void Command2ESP(String toESPcommand)
 }
 
 //################################### GET json from ESPeasyIP... ###########################################
-void GetJson()
-{
+void GetJson() {
   Serial.println();
   Serial.println("----------------------getting JSON from ESP...----------------------");
-  String ESPeasyPath = ESPeasyIP;
+  String ESPeasyPath = ESPeasyIPchanged;
+  Serial.println(ESPeasyIPchanged);
   ESPeasyPath = "http://" + ESPeasyPath + "/json";
   // http.begin(client, ESPeasyPath);
 
@@ -467,7 +426,7 @@ void GetJson()
   http.GET();
 
   // Parse response
-  DynamicJsonDocument filter(1024);
+  DynamicJsonDocument filter(3500);
   filter["Sensors"][0]["TaskValues"][0]["ValueNumber"] = true;
   filter["Sensors"][0]["TaskValues"][0]["Value"] = true;
   filter["Sensors"][0]["TaskValues"][0]["NrDecimals"] = true;
@@ -494,88 +453,33 @@ void GetJson()
   filter["System"]["Unit Number"] = true;
   filter["System"]["Load"] = true;
 
-  DynamicJsonDocument doc(30048);
+  DynamicJsonDocument doc(20048);
   // deserializeJson(doc, http.getStream());
   DeserializationError error = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
-  if (error)
-  {
+  if (error) {
     Serial.print(F("deserializeJson() failed: "));
     Serial.println(error.f_str());
+    if (strcmp_P("EmptyInput", error.f_str()) == 0 || strcmp_P("IncompleteInput", error.f_str()) == 0) {
+      ESPeasyIPchanged = ESPeasyIP;
+      Serial.println("ESPeasy node issues getting json from ESPeasy node");
+      Serial.print("trying again...");
+      http.end();
+      GetJson();
+      //Serial.print("setting IP back to:");
+      //Serial.println(ESPeasyIPchanged);
+    }
     return;
-  }
-  // Disconnect
-  http.end();
-
-  // GET json from ESPeasyIP----------------------------
-  /* int httpResponseCode = http.GET();
-  if (httpResponseCode > 0) {
-    Serial.print("HTTP Response code GET: ");
-    Serial.println(httpResponseCode);
-    char* payload = http.getString();
-    //DynamicJsonDocument filter(1024);
-    //filter["Sensors"] = true;
-    /*filter["nodes"][0] = true;
-    filter["WiFi"]["IP Address"] = true;
-    filter["WiFi"]["RSSI"] = true;
-    filter["WiFi"]["Hostname"] = true;
-    filter["System"]["Hostname"] = true;
-    filter["System"]["Local Time"] = true;
-    filter["System"]["Uptime"] = true;
-    filter["System"]["Free RAM"] = true;
-    filter["System"]["Free Stack"] = true;
-    filter["System"]["Build"] = true;
-    filter["System"]["CPU Eco Mode"] = true;
-    filter["System"]["Unit Number"] = true;*/
-
-  /*//DynamicJsonDocument filter2(12288);
-    DynamicJsonDocument filter2(1024);
-    filter2["Sensors"][0]["TaskValues"][0]["ValueNumber"] = true;
-    filter2["Sensors"][0]["TaskValues"][0]["Value"] = true;
-    filter2["Sensors"][0]["TaskName"] = true;
-    filter2["nodes"][0]["ip"] = true;
-
-
-
-
-
-
-    //DynamicJsonDocument minPayload(1024);
-    //deserializeJson(minPayload, payload, DeserializationOption::Filter(filter));
-    //serializeJson(minPayload, minifiedPayload);
-
-    DynamicJsonDocument minPayload2(20000);
-    DeserializationError error = deserializeJson(minPayload2, payload, DeserializationOption::Filter(filter2));
-if (error) {
-  Serial.print(F("deserializeJson() failed: "));
-  Serial.println(error.f_str());
-  return;
-}*/
-
-  serializeJson(doc, minifiedPayload);
-
-  // merge(minPayload.as<JsonObject>(), minPayload2.as<JsonObject>());
-  // serializeJson(minPayload, minifiedPayload);
-
-  PostToNtfy();
-  /*} else {
-    Serial.print("Error code: ");
-    Serial.println(httpResponseCode);
-  }
-  http.end();*/
-}
-
-//################################## merge the minimal json ##################################################
-void merge(JsonObject dest, JsonObjectConst src)
-{
-  for (auto kvp : src)
-  {
-    dest[kvp.key()] = kvp.value();
+  } 
+  else {
+    // Disconnect
+    http.end();
+    serializeJson(doc, minifiedPayload);
+    PostToNtfy();
   }
 }
 
 //################################## ...and POST it to Ntfy ##################################################
-void PostToNtfy()
-{
+void PostToNtfy() {
   Serial.println();
   Serial.println("----------------------...sending JSON to client----------------------");
   delay(100);
@@ -583,23 +487,26 @@ void PostToNtfy()
   String ntfyTopicStr = ntfyTopic;
   ntfyUrlStr = "http://" + ntfyUrlStr + "/" + ntfyTopicStr + topic2;
 
-  if (minifiedPayload.isEmpty())
-  {
+  if (minifiedPayload.isEmpty()) {
     Serial.println("payload empty");
-  }
-  else
-  {
-    if (!notkilled && doingItOnce) {minifiedPayload = "killed"; doingItOnce = false;}
+  } else {
+    if (!notkilled && doingItOnce) {
+      minifiedPayload = "killed";
+      doingItOnce = false;
+    }
     Serial.println(ntfyUrlStr);
     http2.begin(client, ntfyUrlStr);
     http2.addHeader("Content-Type", "application/json");
-    if (!notkilled && !doingItOnce) {http2.addHeader("Title", "readonly");}
+    if (!notkilled && !doingItOnce) { http2.addHeader("Title", "readonly"); }
     http2.addHeader("Tags", "json");
     http2.addHeader("Cache", "no");
     int httpResponseCode2 = http2.POST(minifiedPayload);
     minifiedPayload = "";
     Serial.print("HTTP Response code POST: ");
     Serial.println(httpResponseCode2);
+    // some issues with receiving json from a node
+    // cause post to fail constantly with -2 or -5 error
+    if (httpResponseCode2 <= 0) {}
     http2.end();
   }
 }

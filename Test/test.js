@@ -49,6 +49,7 @@ var selectedChan = false;
 var eventSource;
 var readyIV;
 var tryconnectIV;
+var redSelection;
 
 //------------------------------------channel & cookie handling------------------------------------------------------
 function addChan() {
@@ -76,7 +77,7 @@ function submitChan() {
     generateChan()
     closeAddChan()
 }
-function generateChan(red) {
+function generateChan() {
     selectedChan = false;
     cookieObj = str_obj(document.cookie);
     html5 = '';
@@ -89,7 +90,7 @@ function generateChan(red) {
         if (key.includes("ntfy_")) {
             newkey = key.split("_")[1];
             if (selectVal && value == selectVal) {
-                if (red) {
+                if (redSelection) {
                     btnselect = "chanBtnSelectRed"
                 } else {
                     btnselect = "chanBtnSelect";
@@ -193,7 +194,7 @@ async function fetchNtfy() {
     console.log(ntfyChannel);
     clearTimeout(readyIV);
     if (ntfyChannel) {
-        sendReady();
+        sendReady(1);
         readyIV = setInterval(sendReady, 60000);
         if (isSSE) {
             console.log("restarting sse...");
@@ -208,8 +209,10 @@ async function fetchNtfy() {
                     alert(newkey + "has been set to read only. Please reset device for full functionality");
                 } else {
                     if (dataNtfy.title == "readonly") {
-                        generateChan("1");
+                        redSelection = 1;
+                        generateChan();
                     }
+                    redSelection = 0;
                     //ntfyJson = IP1;
                     ntfyJson = dataNtfy.message;
                     fetchJson(ntfyJson)
@@ -225,9 +228,10 @@ async function fetchNtfy() {
     longPressS();
 }
 
-async function sendReady() {
+async function sendReady(x) {
     console.log("ready")
-    getUrl("", "send");
+    if (x) {getUrl("", "send1");}
+    else getUrl("", "send");
 }
 
 //------------------------------------------------------------------------------------------------------
@@ -286,7 +290,10 @@ function fetchJson(ntfyJson) {
                 htS2 = '<div  class="sensors" style="font-weight:bold;">' + utton + '</div>'
                 exC = !![38].indexOf(sensor.TaskDeviceNumber); //all PluginNR in an array that need to be excluded 
                 exC2 = !sensor.Type?.includes("Display")
-                if ((sensor.TaskEnabled === "true" || sensor.TaskEnabled) && sensor.TaskValues && !utton.includes("XX") && exC && exC2 && !hasParams) {
+                console.log(sensor.TaskEnabled);
+                console.log("WTF");
+                taskEnabled = sensor.TaskEnabled.toString();
+                if (taskEnabled === "true" && sensor.TaskValues && !utton.includes("XX") && exC && exC2 && !hasParams) {
                     someoneEn = 1;
                     firstItem = true;
                     sensor.TaskValues.forEach(item => {
@@ -478,7 +485,7 @@ function fetchJson(ntfyJson) {
                     html += '</div>';
                     html3 += '</div>';
                 }
-                else if ((sensor.TaskEnabled === "true" || sensor.TaskEnabled) && !utton.includes("XX") && exC && exC2 && !hasParams) { html += '<div  class="sensorset clickables" onclick="buttonClick(\'' + utton + '\')"><div class="sensors" style="font-weight:bold;">' + utton + '</div><div></div><div></div></div>'; someoneEn = 1; document.getElementById('sensorList').innerHTML = html; }
+                else if (taskEnabled === "true" && !utton.includes("XX") && exC && exC2 && !hasParams) { html += '<div  class="sensorset clickables" onclick="buttonClick(\'' + utton + '\')"><div class="sensors" style="font-weight:bold;">' + utton + '</div><div></div><div></div></div>'; someoneEn = 1; document.getElementById('sensorList').innerHTML = html; }
             });
             if (!someoneEn && !hasParams) {
                 html += '<div class="sensorset clickables" onclick="splitOn(); topF()"> <div class="sensors" style="font-weight:bold;">no tasks enabled or visible...</div>';
@@ -500,13 +507,14 @@ function fetchJson(ntfyJson) {
             getNodes();
             //longPressS();
             //longPressN();
-            unitNr1 = myJson.System['Unit Number'];
+            //unitNr1 = myJson.System['Unit Number'];
             /*nP2 = 'http://' + myJson.WiFi['IP Address'] + '/devices';
             nP = 'http://' + myJson.WiFi['IP Address'] + '/tools';*/
             firstRun = 0;
         }
         /*if (unitNr === unitNr1) { styleU = "&#8858;"; }
         else { styleU = ""; }*/
+        unitNr1 = myJson.System['Unit Number'];
         if (!hasParams) {
             document.getElementById('unitId').innerHTML = unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
             document.getElementById('unitT').innerHTML = unit;
@@ -847,7 +855,7 @@ function getNodes(utton, allNodes, hasIt) {
         document.getElementById('sensorList').innerHTML = html;
         changeCss()
         hasParams = 0;
-        setTimeout(fetchJson, 3000);
+        //setTimeout(fetchJson, 3000);
     }
     //else { if (!nIV) { setTimeout(fetchJson, 1000); } }
 }
