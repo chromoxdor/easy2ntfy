@@ -70,13 +70,13 @@ function submitChan() {
     chanName = document.getElementById("channelNa").value;
     chanNumber = document.getElementById("channelNr").value;
     chanServer = document.getElementById("channelSrv").value;
-    if (!chanServer) { chanServer = "ntfy.sh" }
+    if (!chanServer) { chanServer = "ntfy.envs.net" }
     if (chanName && chanNumber) {
         document.cookie = "ntfy_" + chanName + "=" + chanServer + '/' + chanNumber + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
         document.getElementById("inputChannel").style.height = "0";
     }
-    generateChan()
-    closeAddChan()
+    generateChan();
+    closeAddChan();
 }
 function generateChan() {
     selectedChan = false;
@@ -212,6 +212,9 @@ async function fetchNtfy() {
                     if (dataNtfy.title == "readonly") {
                         redSelection = 1;
                         generateChan();
+                    }
+                    else if (dataNtfy.title == "msglimit") {
+                        alert("You reached the limit of json updates, please wait a moment (https://docs.ntfy.sh/publish/#limitations)")
                     }
                     redSelection = 0;
                     //ntfyJson = IP1;
@@ -1054,8 +1057,12 @@ function clearHtml() {
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         invisible = false;
+        clearTimeout(readyIV);
+        readyIV = setInterval(sendReady, 60000);
+        sendReady();
     } else {
         invisible = true;
+        getUrl("", "stop");
     }
   });
 

@@ -10,9 +10,9 @@
 #include <ESP8266HTTPClient.h>
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
-#include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
-#include <ArduinoJson.h>  // https://github.com/bblanchon/ArduinoJson
-#include <WebSockets2_Generic.h> // https://github.com/khoih-prog/WebSockets2_Generic
+#include <WiFiManager.h>          // https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>          // https://github.com/bblanchon/ArduinoJson
+#include <WebSockets2_Generic.h>  // https://github.com/khoih-prog/WebSockets2_Generic
 #define DEBUG_WEBSOCKETS_PORT Serial
 // Debug Level from 0 to 4
 #define _WEBSOCKETS_LOGLEVEL_ 4
@@ -37,7 +37,7 @@ unsigned long lastTime = 0;
 unsigned long timerDelay = 10000;
 
 unsigned long lastUpdate = 0;
-unsigned long timerDelay2 = 120000;
+unsigned long timerDelay2 = 70000;
 
 String ESPeasyIPchanged;
 const char* sendOK;
@@ -78,7 +78,7 @@ unsigned long getTime() {
 
 //Assign output variables to GPIO pins
 char* ESPeasyIP = "0.0.0.0";
-char ntfyUrl[80] = "ntfy.sh";
+char ntfyUrl[80] = "ntfy.envs.net";
 char ntfyTopic[80] = "test123";
 //char ntfyTag[80] = "1234";
 //char output[2] = "5";
@@ -197,6 +197,9 @@ void parseWsMessage() {
       lastTime = millis() - 9000;
       ESPeasyIPchanged = ESPeasyIP;
     }  //sending json immediately
+
+  } else if (sendOKStr == "stop") {
+    receiveLoop = false;
 
   } else if (sendOKStr == "change_node") {
     ESPeasyIPchanged = toESPcommandStr;
@@ -327,6 +330,8 @@ void loopDeviceWM() {
     serializeJson(json, configFile);
     configFile.close();
     shouldSaveConfig = false;
+    String receiveTopic = ntfyTopic;
+    ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
     // end save
   }
 }
@@ -473,8 +478,7 @@ void GetJson() {
       //Serial.println(ESPeasyIPchanged);
     }
     return;
-  } 
-  else {
+  } else {
     // Disconnect
     http.end();
     serializeJson(doc, minifiedPayload);
