@@ -207,7 +207,7 @@ async function fetchNtfy() {
             dataNtfy = JSON.parse(e.data)
             if (dataNtfy) {
                 if (dataNtfy.message == "killed") {
-                    alert(newkey + "has been set to read only. Please reset device for full functionality");
+                    alert(newkey + " has been set to read only. Please reset device for full functionality");
                 } else {
                     if (dataNtfy.title == "readonly") {
                         redSelection = 1;

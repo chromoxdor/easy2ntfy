@@ -258,7 +258,7 @@ void setupDeviceWM() {
   wm.addParameter(&custom_ntfyUrl);
   wm.addParameter(&custom_ntfyTopic);
   //wm.addParameter(&custom_ntfyTag);
-  if (wm.autoConnect("ESPfetch", "configesp")) {
+  if (wm.autoConnect("easy2ntfy", "configesp")) {
     // if you get here you have connected to the WiFi
     Serial.println("Connected to wifi network!");
     wm.setPreSaveConfigCallback(saveConfigCallback);
