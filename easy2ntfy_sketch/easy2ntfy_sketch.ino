@@ -391,7 +391,7 @@ void loop() {
 }
 
 //################################### Command 2 ESPeasyIP ##############################################
-void Command2ESP(String toESPcommand) {
+void Command2ESP(const String& toESPcommand) {
   Serial.println();
   Serial.println("----------------------sending command to ESP...---------------------");
   String ESPeasyPath2 = ESPeasyIPchanged;
