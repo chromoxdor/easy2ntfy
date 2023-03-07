@@ -219,7 +219,7 @@ void parseWsMessage() {
   Serial.println("----------------------------------------------------------------------");
 }
 
-void splitCommand(String command) {
+void splitCommand(const String& command) {
   int index = command.indexOf(' ');
   int length = command.length();
   String commandStr1 = command.substring(0, index);
@@ -464,7 +464,7 @@ void GetJson() {
     Serial.println(error.f_str());
     if (strcmp_P("EmptyInput", error.f_str()) == 0 || strcmp_P("IncompleteInput", error.f_str()) == 0) {
       ESPeasyIPchanged = ESPeasyIP;
-      Serial.println("ESPeasy node issues getting json from ESPeasy node");
+      Serial.println("problems with getting json from ESPeasy node");
       Serial.print("trying again...");
       http.end();
       GetJson();
