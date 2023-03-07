@@ -455,7 +455,8 @@ void GetJson() {
   filter["System"]["Unit Number"] = true;
   filter["System"]["Load"] = true;
 
-  DynamicJsonDocument doc(25048);
+  DynamicJsonDocument doc(20000);
+
   // deserializeJson(doc, http.getStream());
   http.setTimeout(2000);
   DeserializationError error = deserializeJson(doc, http.getStream(), DeserializationOption::Filter(filter));
