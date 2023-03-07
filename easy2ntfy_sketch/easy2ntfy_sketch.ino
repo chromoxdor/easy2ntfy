@@ -12,7 +12,7 @@
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>  // https://github.com/tzapu/WiFiManager
 #include <ArduinoJson.h>  // https://github.com/bblanchon/ArduinoJson
-#include <WebSockets2_Generic.h>
+#include <WebSockets2_Generic.h> // https://github.com/khoih-prog/WebSockets2_Generic
 #define DEBUG_WEBSOCKETS_PORT Serial
 // Debug Level from 0 to 4
 #define _WEBSOCKETS_LOGLEVEL_ 4
@@ -25,7 +25,7 @@ HTTPClient http;
 HTTPClient http2;
 HTTPClient http3;
 ESP8266WebServer server(80);
-String newHostname = "EasyToNtfy";
+String newHostname = "Easy2Ntfy";
 String payload;
 String minifiedPayload;
 String minifiedPayload2;
@@ -374,6 +374,8 @@ void loop() {
     receiveLoop = false;
     ESPeasyIPchanged = ESPeasyIP;
     analogWrite(ledPin, 1000);
+    Serial.println("");
+    Serial.println("----------------------------------------------------------------------");
     Serial.println("client timed out...no json will be send anymore");
     Serial.print("setting IP back to:");
     Serial.println(ESPeasyIPchanged);
@@ -403,7 +405,7 @@ void Command2ESP(String toESPcommand) {
     Serial.println(httpResponseCode);
     Serial.println();
     Serial.println("----------------------sending update...----------------------");
-    lastTime = millis() - 9000;  //sending json immediately
+    lastTime = millis() - (timerDelay - 1000);  //sending json almost immediately
   } else {
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
