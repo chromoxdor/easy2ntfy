@@ -11,6 +11,7 @@ var nP2;
 var nN; //nodeName
 var unitNr;
 var unitNr1;
+var unitNrdefault;
 var nIV; //nodeinterval
 var iIV; //InputInterV
 var isOpen = 0;
@@ -213,9 +214,6 @@ async function fetchNtfy() {
                         redSelection = 1;
                         generateChan();
                     }
-                    else if (dataNtfy.title == "msglimit") {
-                        alert("You reached the limit of json updates, please wait a moment (https://docs.ntfy.sh/publish/#limitations)")
-                    }
                     redSelection = 0;
                     //ntfyJson = IP1;
                     ntfyJson = dataNtfy.message;
@@ -226,17 +224,21 @@ async function fetchNtfy() {
                 };
             } else console.log("no json data received");
         };
-
     }
     generateChan();
     longPressS();
 }
 
 async function sendReady(x) {
-    if (!invisible){
-    console.log("ready")
-    if (x) {getUrl("", "send1");}
-    else getUrl("", "send");
+    if (!invisible) {
+        console.log("ready")
+        if (x) { getUrl("", "send1"); }
+        else getUrl("", "send");
+    }
+    if (Date.now() - responseTime2 > 15000) {
+        clearHtml();
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">This page will refresh in a minute...<pre>';
+        alert("You probably reached the limit of json updates, please wait a moment (https://docs.ntfy.sh/publish/#limitations)")
     }
 }
 
@@ -511,7 +513,7 @@ function fetchJson(ntfyJson) {
             getNodes();
             //longPressS();
             //longPressN();
-            //unitNr1 = myJson.System['Unit Number'];
+            unitNrdefault = myJson.System['Unit Number'];
             /*nP2 = 'http://' + myJson.WiFi['IP Address'] + '/devices';
             nP = 'http://' + myJson.WiFi['IP Address'] + '/tools';*/
             firstRun = 0;
@@ -873,13 +875,22 @@ function nodeChange(event) {
         /*nP = `http://${nInf.ip}/tools`;
         nP2 = `http://${nInf.ip}/devices`;*/
         jsonPath = window[nInf.ip];
-        window.history.replaceState(null, null, '?unit=' + nNr);
+        console.log(unitNrdefault, nNr);
+        if (unitNrdefault == nNr) {
+            console.log("replace");
+            var url = document.location.href;
+            window.history.pushState({}, "", url.split("?")[0]);
+        }
+        else {
+            window.history.replaceState(null, null, '?unit=' + nNr);
+        }
         //setTimeout(fetchJson, 1000);
         //setTimeout(getNodes, 500);
         getUrl(nInf.ip, "change_node")
     }
     if (window.innerWidth < 450 && document.getElementById('sysInfo').offsetHeight === 0) { closeNav(); }
 }
+
 function resizeText() {
     const isOverflown = ({ clientWidth, clientHeight, scrollWidth, scrollHeight }) => (scrollWidth > clientWidth) || (scrollHeight > clientHeight)
     const resizeText = ({ element, elements, minSize = 10, maxSize = 115, step = 1, unit = 'pt' }) => {
@@ -1003,11 +1014,14 @@ async function getUrl(url, title) {
                     'Cache': 'no'
                 }
             });
-            if (response.status == 429) { responseTime = Date.now(); alert("You reached the limit of commands, please wait a moment (https://docs.ntfy.sh/publish/#limitations)") }
+            if (response.status == 429) {
+                clearTimeout(readyIV);
+                alert("You reached the limit of commands, please wait a moment and reload \n(https://docs.ntfy.sh/publish/#limitations)")
+            }
         } catch (error) {
             console.error(error);
             clearHtml();
-            document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you enter the correct server?\nIs your Server online and reachable?<pre>';
+            document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you enter the correct server?\nIs your Server online and reachable?\nTry to reload this page<pre>';
         }
         //return response;
     }
@@ -1044,7 +1058,7 @@ function connectionIssues() {
     }
     else if (Date.now() - responseTime2 > 10000) {
         clearHtml();
-        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...still trying to connect...\nIs easy2ntfy actually running?<pre>';
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">...still trying to connect...\nIs easy2ntfy actually running?\nIt is also possible, that you hit the message limit. \n(if so easy2ntfy will be back in a minute)<pre>';
     }
 }
 
@@ -1064,6 +1078,6 @@ document.addEventListener("visibilitychange", () => {
         invisible = true;
         getUrl("", "stop");
     }
-  });
+});
 
 !function (e, n) { "use strict"; var t = null, a = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator, i = "ontouchstart" in e || navigator.MaxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, o = 0, r = 0; function m(e) { var t; u(), e = void 0 !== (t = e).changedTouches ? t.changedTouches[0] : t, this.dispatchEvent(new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: { clientX: e.clientX, clientY: e.clientY }, clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY, screenX: e.screenX, screenY: e.screenY })) || n.addEventListener("click", function e(t) { var a; n.removeEventListener("click", e, !0), (a = t).stopImmediatePropagation(), a.preventDefault(), a.stopPropagation() }, !0) } function u(n) { var a; (a = t) && (e.cancelAnimationFrame ? e.cancelAnimationFrame(a.value) : e.webkitCancelAnimationFrame ? e.webkitCancelAnimationFrame(a.value) : e.webkitCancelRequestAnimationFrame ? e.webkitCancelRequestAnimationFrame(a.value) : e.mozCancelRequestAnimationFrame ? e.mozCancelRequestAnimationFrame(a.value) : e.oCancelRequestAnimationFrame ? e.oCancelRequestAnimationFrame(a.value) : e.msCancelRequestAnimationFrame ? e.msCancelRequestAnimationFrame(a.value) : clearTimeout(a)), t = null } "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, t) { t = t || { bubbles: !1, cancelable: !1, detail: void 0 }; var a = n.createEvent("CustomEvent"); return a.initCustomEvent(e, t.bubbles, t.cancelable, t.detail), a }, e.CustomEvent.prototype = e.Event.prototype), e.requestAnimFrame = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (n) { e.setTimeout(n, 1e3 / 60) }, n.addEventListener(a ? "pointerup" : i ? "touchend" : "mouseup", u, !0), n.addEventListener(a ? "pointermove" : i ? "touchmove" : "mousemove", function e(n) { var t = Math.abs(o - n.clientX), a = Math.abs(r - n.clientY); (t >= 10 || a >= 10) && u(n) }, !0), n.addEventListener("wheel", u, !0), n.addEventListener("scroll", u, !0), n.addEventListener(a ? "pointerdown" : i ? "touchstart" : "mousedown", function a(i) { var s, c, l; o = i.clientX, r = i.clientY, u(s = i), l = parseInt(function e(t, a, i) { for (; t && t !== n.documentElement;) { var o = t.getAttribute(a); if (o) return o; t = t.parentNode } return "600" }(c = s.target, "data-long-press-delay", "600"), 10), t = function n(t, a) { if (!e.requestAnimationFrame && !e.webkitRequestAnimationFrame && !(e.mozRequestAnimationFrame && e.mozCancelRequestAnimationFrame) && !e.oRequestAnimationFrame && !e.msRequestAnimationFrame) return e.setTimeout(t, a); var i = new Date().getTime(), o = {}, r = function () { new Date().getTime() - i >= a ? t.call() : o.value = requestAnimFrame(r) }; return o.value = requestAnimFrame(r), o }(m.bind(c, s), l) }, !0) }(window, document);

@@ -508,9 +508,11 @@ void PostToNtfy() {
     minifiedPayload = "";
     Serial.print("HTTP Response code POST: ");
     Serial.println(httpResponseCode2);
+    if (httpResponseCode2 == 200) {timerDelay = 10000;}
+    else if (httpResponseCode2 == 429) {timerDelay = 60000;}
     // some issues with receiving json from a node
     // cause post to fail constantly with -2 or -5 error
-    if (httpResponseCode2 <= 0) {}
+    //if (httpResponseCode2 <= 0) {}
     http2.end();
   }
 }
