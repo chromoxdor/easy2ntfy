@@ -199,7 +199,9 @@ void parseWsMessage() {
     }  //sending json immediately
 
   } else if (sendOKStr == "stop") {
-    lastUpdate = millis() - (timerDelay2 - 1000);
+    //lastUpdate = millis() - (timerDelay2 - 1000);
+    receiveLoop = false;
+    analogWrite(ledPin, 1000);
 
   } else if (sendOKStr == "change_node") {
     ESPeasyIPchanged = toESPcommandStr;
@@ -261,10 +263,11 @@ void setupDeviceWM() {
   wm.addParameter(&custom_ntfyUrl);
   wm.addParameter(&custom_ntfyTopic);
   //wm.addParameter(&custom_ntfyTag);
+  wm.setPreSaveConfigCallback(saveConfigCallback);
   if (wm.autoConnect("easy2ntfy", "configesp")) {
     // if you get here you have connected to the WiFi
     Serial.println("Connected to wifi network!");
-    wm.setPreSaveConfigCallback(saveConfigCallback);
+    //wm.setPreSaveConfigCallback(saveConfigCallback);
     WiFi.mode(WIFI_STA);
     WiFi.hostname(newHostname.c_str());
     wm.startWebPortal();
@@ -299,7 +302,7 @@ void saveConfigCallback() {
 }
 
 // This void needs to be called in the loop void so it can handle the WM and the webportal.
-void loopDeviceWM() {
+void loopDeviceWM() {  
   wm.startWebPortal();
   wm.process();
   server.handleClient();
@@ -315,7 +318,7 @@ void loopDeviceWM() {
     Serial.println(ntfyUrl);
     Serial.print("topic:");
     Serial.println(ntfyTopic);
-    Serial.print("tag:");
+    //Serial.print("tag:");
     //Serial.println(ntfyTag);
     Serial.println("saving config");
     DynamicJsonDocument json(1024);
@@ -331,6 +334,7 @@ void loopDeviceWM() {
     serializeJson(json, configFile);
     configFile.close();
     shouldSaveConfig = false;
+    ESPeasyIPchanged = ESPeasyIP;
     String receiveTopic = ntfyTopic;
     ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
     // end save
