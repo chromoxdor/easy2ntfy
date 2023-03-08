@@ -49,6 +49,7 @@ var html5;
 var selectedChan = false;
 var eventSource;
 var readyIV;
+var jsonIV;
 var tryconnectIV;
 var redSelection;
 var invisible = false;
@@ -221,6 +222,9 @@ async function fetchNtfy() {
                     responseTime2 = Date.now();
                     console.log("received valid json data...");
                     clearTimeout(tryconnectIV);
+                    
+                    clearTimeout(jsonIV);
+                    jsonIV = setInterval(jsonLimit, 15000);
                 };
             } else console.log("no json data received");
         };
@@ -235,12 +239,16 @@ async function sendReady(x) {
         if (x) { getUrl("", "send1"); }
         else getUrl("", "send");
     }
-    if (Date.now() - responseTime2 > 15000) {
+}
+
+function jsonLimit() {
+        clearTimeout(jsonIV);
+        clearTimeout(readyIV);
+        readyIV = setInterval(sendReady, 60000);
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">This page will refresh in a minute...<pre>';
-        alert("You probably reached the limit of json updates, please wait a moment (https://docs.ntfy.sh/publish/#limitations)")
+        alert("You probably reached the limit of json updates \n(https://docs.ntfy.sh/publish/#limitations) \nor easy2nfy became unavailable \n...please wait a moment...")
     }
-}
 
 //------------------------------------------------------------------------------------------------------
 
