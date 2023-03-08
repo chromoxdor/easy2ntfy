@@ -79,7 +79,7 @@ unsigned long getTime() {
 //Assign output variables to GPIO pins
 char* ESPeasyIP = "0.0.0.0";
 char ntfyUrl[80] = "ntfy.envs.net";
-char ntfyTopic[80] = "test123";
+char ntfyTopic[80] = "";
 //char ntfyTag[80] = "1234";
 //char output[2] = "5";
 
@@ -140,10 +140,10 @@ void setup() {
   //server.begin();  // declare this at the beggining of the code => ESP8266WebServer server(80);
   setupDeviceWM();
 
-  while (WiFi.status() != WL_CONNECTED) {
+  /*while (WiFi.status() != WL_CONNECTED) {
     delay(200);
     Serial.print(".");
-  }
+  }*/
 
   ws.onMessage(onMessageCallback);  // run callback when messages are received
   ws.onEvent(onEventsCallback);     // run callback when events are occuring
@@ -194,20 +194,20 @@ void parseWsMessage() {
     receiveLoop = true;
     lastUpdate = millis();
     if (sendOKStr == "send1") {
-      lastTime = millis() - 9000;
+      lastTime = millis() - (timerDelay - 1000);
       ESPeasyIPchanged = ESPeasyIP;
     }  //sending json immediately
 
   } else if (sendOKStr == "stop") {
-    receiveLoop = false;
+    lastUpdate = millis() - (timerDelay2 - 1000);
 
   } else if (sendOKStr == "change_node") {
     ESPeasyIPchanged = toESPcommandStr;
-    lastTime = millis() - 9000;  //sending json immediately
+    lastTime = millis() - (timerDelay - 1000);  //sending json immediately
 
   } else if (sendOKStr == "kill") {
     notkilled = false;
-    lastTime = millis() - 9000;  //sending json immediately
+    lastTime = millis() - (timerDelay - 1000);  //sending json immediately
 
   } else if (sendOKStr == "command" || sendOKStr == "dualcommand" && receiveLoop && notkilled) {
     if (abs(getTime() - receiveTime) <= 2) {
@@ -272,7 +272,7 @@ void setupDeviceWM() {
     Serial.println("Non blocking config portal running!");
   }
   // call the code down to activate wifi so users can configure the device, event if it's connected to the local network
-  // wm.startConfigPortal("IOT_Device");
+  //wm.startConfigPortal("IOT_Device");
   //
   server.onNotFound(handleNotFound);
 }
@@ -300,6 +300,7 @@ void saveConfigCallback() {
 
 // This void needs to be called in the loop void so it can handle the WM and the webportal.
 void loopDeviceWM() {
+  wm.startWebPortal();
   wm.process();
   server.handleClient();
   // save the custom parameters to FS
