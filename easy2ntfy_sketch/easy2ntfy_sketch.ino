@@ -272,7 +272,7 @@ void setupDeviceWM() {
     Serial.println("Non blocking config portal running!");
   }
   // call the code down to activate wifi so users can configure the device, event if it's connected to the local network
-  //wm.startConfigPortal("IOT_Device");
+  // wm.startConfigPortal("IOT_Device");
   //
   server.onNotFound(handleNotFound);
 }
@@ -344,18 +344,10 @@ void loop() {
   loopDeviceWM();  // necessary for WIFI MANAGER
   ws.poll();       // necessary for WEBSOCKETS
 
-  // websocket listen to ntfyUrl + ntfyChannel if (channelTopic = start and channelTag = pass)
-  // run or reset timer 2 minutes
-  // start sending json with ipDefault every 10 sec
-  // PostToNtfy()
-  //(else if channelTopic=ip and channelTag=pass)
-  // ESPeasyIP = channelTopic;
-  // if timer ended
-  // stop sending json
-  /*if ((millis() - lastTime2) > timerDelay) {
-    GetJson();
-    lastTime2 = millis();
-  }*/
+  //------------------update values of paramaters in WiFiManager--------------------------------
+  wm.getParameters()[0]->setValue(ESPeasyIP, 40);
+  wm.getParameters()[1]->setValue(ntfyUrl, 80);
+  wm.getParameters()[2]->setValue(ntfyTopic, 80);
 
   //------------------LED--------------------------------
   if (blinkLed) {
