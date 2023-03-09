@@ -184,6 +184,7 @@ function enterOnInputs() {
 
 async function fetchNtfy() {
     responseTime2 = Date.now();
+    document.getElementById('unitInf').innerHTML = 'connecting...';
     if (document.cookie.includes("*selectedChannel") && document.cookie.includes("ntfy_")) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">trying to connect...<pre>';
@@ -208,27 +209,34 @@ async function fetchNtfy() {
         eventSource.onmessage = (e) => {
             dataNtfy = JSON.parse(e.data)
             if (dataNtfy) {
+                document.getElementById('receiveNote').style.opacity = 1;
                 if (dataNtfy.message == "killed") {
                     alert(newkey + " has been set to read only. Please reset device for full functionality");
                 } else {
                     if (dataNtfy.title == "readonly") {
                         redSelection = 1;
                         generateChan();
-                    }
+                        document.getElementById('receiveNote').style.background = "yellow";
+                    } else { document.getElementById('receiveNote').style.background = "limegreen"; }
                     redSelection = 0;
-                    //ntfyJson = IP1;
                     ntfyJson = dataNtfy.message;
-                    fetchJson(ntfyJson)
-                    document.getElementById('receiveNote').style.opacity = 1;
-                    setTimeout(receiveNote, 500);
-                    responseTime2 = Date.now();
-                    console.log("received valid json data...");
-                    clearTimeout(tryconnectIV);
-
-                    clearTimeout(jsonAlarmIV);
-                    jsonAlarmIV = setInterval(jsonLimit, 15000);
+                    try {
+                        myJson = JSON.parse(ntfyJson);
+                        fetchJson()
+                        responseTime2 = Date.now();
+                        console.log("received valid json data...");
+                        clearTimeout(tryconnectIV);
+                        clearTimeout(jsonAlarmIV);
+                        jsonAlarmIV = setTimeout(jsonLimit, 20000);
+                    } catch (e) {
+                        console.log(e);
+                        document.getElementById('receiveNote').style.background = "red";
+                    }
                 };
-            } else console.log("no json data received");
+            } else {
+                console.log("no json data received");
+            }
+            setTimeout(receiveNote, 500);
         };
     }
     generateChan();
@@ -255,22 +263,18 @@ function jsonLimit() {
 }
 
 function receiveNote() {
-    console.log("gotcha");
     document.getElementById('receiveNote').style.opacity = 0;
 }
 
 //------------------------------------------------------------------------------------------------------
 
-function fetchJson(ntfyJson) {
+function fetchJson() {
     urlParams = new URLSearchParams(window.location.search);
     myParam = urlParams.get('unit');
     if (myParam == null) { hasParams = 0; }
     someoneEn = 0;
-    if (!jsonPath) { jsonPath = ntfyJson; }
-    //if (!jsonPath) { jsonPath = IP1; }
+    //if (!jsonPath) { jsonPath = ntfyJson; }
     //myJson = jsonPath
-    myJson = JSON.parse(ntfyJson);
-    //myJson = ntfyJson;
     isittime = 1;
     if (isittime) {
         console.log(myJson);
@@ -539,7 +543,7 @@ function fetchJson(ntfyJson) {
         else { styleU = ""; }*/
         unitNr1 = myJson.System['Unit Number'];
         if (!hasParams) {
-            document.getElementById('unitId').innerHTML = '<span id="receiveNote">&#8857;&#xFE0E;</span>' + unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
+            document.getElementById('unitInf').innerHTML = unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
             document.getElementById('unitT').innerHTML = unit;
         }
         getNodes();
@@ -820,10 +824,10 @@ function getInput(ele, initalCLick) {
 
 function blurInput(on) {
     isittime = 1;
-    if (on) {
+    /*if (on) {
         clearTimeout(nodeUpdate);
-        nodeUpdate = setTimeout(getUrl.bind(null, '', 'update'), 800);
-    }
+        nodeUpdate = setTimeout(getUrl.bind(null, '', 'update'), 1000);
+    }*/
 }
 
 function openNav(whatisit) {
@@ -1033,7 +1037,14 @@ async function getUrl(url, title) {
             });
             if (response.status == 429) {
                 clearTimeout(readyIV);
-                alert("You reached the limit of commands, please wait a moment and reload \n(https://docs.ntfy.sh/publish/#limitations)")
+                alert("You reached the limit of commands, please wait a moment and reload \n(https://docs.ntfy.sh/publish/#limitations)");
+                document.getElementById('receiveNote').style.opacity = 1;
+                document.getElementById('receiveNote').style.background = "red";
+                setTimeout(receiveNote, 500);
+            } else if (response.status == 200) {
+                document.getElementById('receiveNote').style.opacity = 1;
+                document.getElementById('receiveNote').style.background = "blue";
+                setTimeout(receiveNote, 500);
             }
         } catch (error) {
             console.error(error);
@@ -1087,15 +1098,19 @@ function clearHtml() {
 
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
+        console.log("visible");
         invisible = false;
         clearTimeout(readyIV);
         readyIV = setInterval(sendReady, 60000);
         sendReady();
     } else {
+        console.log("invisible");
         invisible = true;
         clearTimeout(jsonAlarmIV);
         getUrl("", "stop");
     }
 });
+
+
 
 !function (e, n) { "use strict"; var t = null, a = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator, i = "ontouchstart" in e || navigator.MaxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, o = 0, r = 0; function m(e) { var t; u(), e = void 0 !== (t = e).changedTouches ? t.changedTouches[0] : t, this.dispatchEvent(new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: { clientX: e.clientX, clientY: e.clientY }, clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY, screenX: e.screenX, screenY: e.screenY })) || n.addEventListener("click", function e(t) { var a; n.removeEventListener("click", e, !0), (a = t).stopImmediatePropagation(), a.preventDefault(), a.stopPropagation() }, !0) } function u(n) { var a; (a = t) && (e.cancelAnimationFrame ? e.cancelAnimationFrame(a.value) : e.webkitCancelAnimationFrame ? e.webkitCancelAnimationFrame(a.value) : e.webkitCancelRequestAnimationFrame ? e.webkitCancelRequestAnimationFrame(a.value) : e.mozCancelRequestAnimationFrame ? e.mozCancelRequestAnimationFrame(a.value) : e.oCancelRequestAnimationFrame ? e.oCancelRequestAnimationFrame(a.value) : e.msCancelRequestAnimationFrame ? e.msCancelRequestAnimationFrame(a.value) : clearTimeout(a)), t = null } "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, t) { t = t || { bubbles: !1, cancelable: !1, detail: void 0 }; var a = n.createEvent("CustomEvent"); return a.initCustomEvent(e, t.bubbles, t.cancelable, t.detail), a }, e.CustomEvent.prototype = e.Event.prototype), e.requestAnimFrame = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (n) { e.setTimeout(n, 1e3 / 60) }, n.addEventListener(a ? "pointerup" : i ? "touchend" : "mouseup", u, !0), n.addEventListener(a ? "pointermove" : i ? "touchmove" : "mousemove", function e(n) { var t = Math.abs(o - n.clientX), a = Math.abs(r - n.clientY); (t >= 10 || a >= 10) && u(n) }, !0), n.addEventListener("wheel", u, !0), n.addEventListener("scroll", u, !0), n.addEventListener(a ? "pointerdown" : i ? "touchstart" : "mousedown", function a(i) { var s, c, l; o = i.clientX, r = i.clientY, u(s = i), l = parseInt(function e(t, a, i) { for (; t && t !== n.documentElement;) { var o = t.getAttribute(a); if (o) return o; t = t.parentNode } return "600" }(c = s.target, "data-long-press-delay", "600"), 10), t = function n(t, a) { if (!e.requestAnimationFrame && !e.webkitRequestAnimationFrame && !(e.mozRequestAnimationFrame && e.mozCancelRequestAnimationFrame) && !e.oRequestAnimationFrame && !e.msRequestAnimationFrame) return e.setTimeout(t, a); var i = new Date().getTime(), o = {}, r = function () { new Date().getTime() - i >= a ? t.call() : o.value = requestAnimFrame(r) }; return o.value = requestAnimFrame(r), o }(m.bind(c, s), l) }, !0) }(window, document);

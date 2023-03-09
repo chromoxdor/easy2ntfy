@@ -302,7 +302,7 @@ void saveConfigCallback() {
 }
 
 // This void needs to be called in the loop void so it can handle the WM and the webportal.
-void loopDeviceWM() {  
+void loopDeviceWM() {
   wm.startWebPortal();
   wm.process();
   server.handleClient();
@@ -470,7 +470,7 @@ void GetJson() {
       Serial.println("problems with getting json from ESPeasy node");
       Serial.print("trying again...");
       http.end();
-      GetJson();
+      lastTime = millis() - (timerDelay - 2000);
       //Serial.print("setting IP back to:");
       //Serial.println(ESPeasyIPchanged);
     }
@@ -508,8 +508,11 @@ void PostToNtfy() {
     minifiedPayload = "";
     Serial.print("HTTP Response code POST: ");
     Serial.println(httpResponseCode2);
-    if (httpResponseCode2 == 200) {timerDelay = 10000;}
-    else if (httpResponseCode2 == 429) {timerDelay = 60000;}
+    if (httpResponseCode2 == 200) {
+      timerDelay = 10000;
+    } else if (httpResponseCode2 == 429) {
+      timerDelay = 60000;
+    }
     // some issues with receiving json from a node
     // cause post to fail constantly with -2 or -5 error
     //if (httpResponseCode2 <= 0) {}
