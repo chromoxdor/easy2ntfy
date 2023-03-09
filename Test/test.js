@@ -102,7 +102,7 @@ function generateChan() {
             } else {
                 btnselect = "";
             }
-            html5 += '<div class="channelItem"><button class="buttonUnit ' + btnselect + '" style="text-align: center;" onclick="setChannel(this);"><div class="chanName" id="' + newkey + '">' + newkey + '</div><div class="channelName">' + value + '</div></button><button class="remove" onclick="delChan(\'' + key + '\',\'' + value + '\')">-</button></div>';
+            html5 += '<div class="channelItem"><button class="buttonUnit ' + btnselect + '" style="text-align: center;" onclick="setChannel(this);" onmouseup="setTimeout(blurInput.bind(null, \'1\',), 100);"><div class="chanName" id="' + newkey + '">' + newkey + '</div><div class="channelName">' + value + '</div></button><button class="remove" onclick="delChan(\'' + key + '\',\'' + value + '\')">-</button></div>';
         }
     });
     if (html5) {
@@ -138,17 +138,20 @@ function str_obj(str) {
     return result;
 }
 function setChannel(data) {
-    document.getElementById('sensorList').innerHTML = '<pre class="noChan">trying to connect...<pre>';
-    ntfyChannel = data.children[1].textContent;
-    document.cookie = "*selectedChannel=" + ntfyChannel + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
-    chanBtns = document.querySelectorAll(".buttonUnit");
-    chanBtns.forEach(chanBtn => {
-        chanBtn.classList.remove("chanBtnSelect");
-    });
-    data.classList.add("chanBtnSelect");
-    openChanSelection()
-    fetchNtfy()
+    if (isittime) {
+        document.getElementById('sensorList').innerHTML = '<pre class="noChan">trying to connect...<pre>';
+        ntfyChannel = data.children[1].textContent;
+        document.cookie = "*selectedChannel=" + ntfyChannel + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
+        chanBtns = document.querySelectorAll(".buttonUnit");
+        chanBtns.forEach(chanBtn => {
+            chanBtn.classList.remove("chanBtnSelect");
+        });
+        data.classList.add("chanBtnSelect");
+        openChanSelection()
+        fetchNtfy()
+    }
 }
+
 function delChan(name, value) {
     console.log(name, value);
     if (get_cookie(name)) {
@@ -966,6 +969,8 @@ function longPressB() {
     longButtonChans.forEach(longButtonChan => {
         longButtonChan.addEventListener('long-press', function (e) {
             getUrl("", "kill");
+            playSound(1000);
+            isittime = 0;
         });
     });
     longButtons.forEach(longButton => {

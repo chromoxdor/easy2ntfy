@@ -407,7 +407,7 @@ void Command2ESP(const String& toESPcommand) {
     Serial.println(httpResponseCode);
     Serial.println();
     Serial.println("----------------------sending update...----------------------");
-    lastTime = millis() - (timerDelay - 1000);  //sending json almost immediately
+    lastTime = millis() - (timerDelay - 1000);  //sending json almost immediately after the last command is received
   } else {
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
