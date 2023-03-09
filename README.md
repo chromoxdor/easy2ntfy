@@ -49,7 +49,7 @@ If the message length exceeds 4,096 bytes the content will be treated as an atta
 Filtering out unnecessary JSON by esasy2ntfy shortens the output but a node (especially esp32) with a lot of enabled devices could hit this limit and will not be displayed.  
   
   
-# **Todo:**
+## **Todo:**
 
  show amount of daily send messages  
 - authentication options for self hosted server  
