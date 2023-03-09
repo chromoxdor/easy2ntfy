@@ -211,7 +211,7 @@ void parseWsMessage() {
     notkilled = false;
     lastTime = millis() - (timerDelay - 1000);  //sending json immediately
 
-  } else if (sendOKStr == "command" || sendOKStr == "dualcommand" && receiveLoop && notkilled) {
+  } else if ((sendOKStr == "command" || sendOKStr == "dualcommand") && receiveLoop && notkilled) {
     if (abs(getTime() - receiveTime) <= 2) {
       if (sendOKStr == "command") {
         Command2ESP(toESPcommandStr);
@@ -221,6 +221,8 @@ void parseWsMessage() {
       Serial.println("discarded command..took to long!!!");
     }
   }
+  Serial.print("readonly:");
+  Serial.println(!notkilled);
   Serial.println("----------------------------------------------------------------------");
 }
 
