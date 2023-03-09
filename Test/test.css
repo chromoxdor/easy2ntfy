@@ -647,6 +647,11 @@ button.remove {
     box-shadow: none !important;
 }
 
+#receiveNote {
+    opacity: 0;
+    transition: 0.5s ease-in-out;
+}
+
 @media screen and (max-height: 450px) {
     #framie {
         padding-bottom: 40px;

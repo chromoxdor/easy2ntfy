@@ -219,6 +219,8 @@ async function fetchNtfy() {
                     //ntfyJson = IP1;
                     ntfyJson = dataNtfy.message;
                     fetchJson(ntfyJson)
+                    document.getElementById('receiveNote').style.opacity = 1;
+                    setTimeout(receiveNote, 500);
                     responseTime2 = Date.now();
                     console.log("received valid json data...");
                     clearTimeout(tryconnectIV);
@@ -250,6 +252,11 @@ function jsonLimit() {
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">This page will refresh in a minute...<pre>';
         alert("You probably reached the limit of json updates \n(https://docs.ntfy.sh/publish/#limitations) \nor easy2nfy became unavailable \n...please wait a moment...")
     }
+}
+
+function receiveNote() {
+    console.log("gotcha");
+    document.getElementById('receiveNote').style.opacity = 0;
 }
 
 //------------------------------------------------------------------------------------------------------
@@ -532,7 +539,7 @@ function fetchJson(ntfyJson) {
         else { styleU = ""; }*/
         unitNr1 = myJson.System['Unit Number'];
         if (!hasParams) {
-            document.getElementById('unitId').innerHTML = unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
+            document.getElementById('unitId').innerHTML = '<span id="receiveNote">&#8857;&#xFE0E;</span>' + unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
             document.getElementById('unitT').innerHTML = unit;
         }
         getNodes();
