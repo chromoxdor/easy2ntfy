@@ -212,6 +212,8 @@ async function fetchNtfy() {
         eventSource.onmessage = (e) => {
             dataNtfy = JSON.parse(e.data)
             if (dataNtfy) {
+                clearTimeout(tryconnectIV);
+                //clearHtml();
                 document.getElementById('receiveNote').style.opacity = 1;
                 if (dataNtfy.message == "killed") {
                     alert(newkey + " has been set to read only. Please reset device for full functionality");
@@ -220,15 +222,17 @@ async function fetchNtfy() {
                         redSelection = 1;
                         generateChan();
                         document.getElementById('receiveNote').style.background = "yellow";
-                    } else { document.getElementById('receiveNote').style.background = "limegreen"; }
-                    redSelection = 0;
+                    } else {
+                        document.getElementById('receiveNote').style.background = "limegreen";
+                        redSelection = 0;
+                        generateChan();
+                    }
                     ntfyJson = dataNtfy.message;
                     try {
                         myJson = JSON.parse(ntfyJson);
                         fetchJson()
                         responseTime2 = Date.now();
                         console.log("received valid json data...");
-                        clearTimeout(tryconnectIV);
                         clearTimeout(jsonAlarmIV);
                         jsonAlarmIV = setTimeout(jsonLimit, 20000);
                     } catch (e) {
@@ -267,6 +271,7 @@ function jsonLimit() {
 
 function receiveNote() {
     document.getElementById('receiveNote').style.opacity = 0;
+    document.getElementById('receiveNote').style.background = "none"
 }
 
 //------------------------------------------------------------------------------------------------------
