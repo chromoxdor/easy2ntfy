@@ -255,7 +255,8 @@ async function fetchNtfy() {
 async function sendReady(x) {
     if (!invisible) {
         console.log("ready")
-        if (x) { getUrl("", "send1"); }
+        if (x == 1) { getUrl("", "send1"); }
+        else if (x == 2) { getUrl("", "send2"); }
         else getUrl("", "send");
     }
     isittime2 = 1;
@@ -1119,7 +1120,7 @@ document.addEventListener("visibilitychange", () => {
         if (isittime2) {
             clearTimeout(readyIV);
             readyIV = setInterval(sendReady, 60000);
-            sendReady();
+            sendReady(2);
         }
     } else {
         console.log("invisible");

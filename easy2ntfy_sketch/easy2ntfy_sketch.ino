@@ -187,8 +187,9 @@ void parseWsMessage() {
   Serial.println(getTime());
   sendOKStr = sendOK;
   toESPcommandStr = toESPcommand;
+  Serial.println(sendOKStr.indexOf("send"));
 
-  if (sendOKStr == "send" || sendOKStr == "send1") {
+  if (sendOKStr.indexOf("send") != -1) { 
     digitalWrite(ledPin, LOW);
     Serial.println("sending data...");
     receiveLoop = true;
@@ -196,6 +197,9 @@ void parseWsMessage() {
     if (sendOKStr == "send1") {
       lastTime = millis() - (timerDelay - 1000);
       ESPeasyIPchanged = ESPeasyIP;
+    }  //sending json immediately and set ip to default
+    else if (sendOKStr == "send2") {
+      lastTime = millis() - (timerDelay - 1000);
     }  //sending json immediately
 
   } else if (sendOKStr == "stop") {
