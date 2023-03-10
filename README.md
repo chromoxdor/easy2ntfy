@@ -51,10 +51,11 @@ Filtering out unnecessary JSON by esasy2ntfy shortens the output but a node (esp
   
 ## **Todo:**
 
- show amount of daily send messages  
+
 - authentication options for self hosted server  
-- add notification when JSON message gets to long  
+- ~~add notification when JSON message gets to long~~  
 - ~~display saved parameters in WiFiManager if available (instead of default values)~~
+- maybe show amount of daily send messages  
   
   
 
