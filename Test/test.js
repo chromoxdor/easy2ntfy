@@ -211,7 +211,7 @@ async function fetchNtfy() {
         eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
         isSSE = true;
         eventSource.onmessage = (e) => {
-            if (e.data.includes(ntfyChannel.split("/")[0] + "/file")) { alert("json message has become too long \nntfy can only handle messages <= 4096byte") }
+            if (e.data.includes(ntfyChannel.split("/")[0] + "/file")) { alert("The json-message has become too long \nntfy can only handle messages <= 4096byte") }
             dataNtfy = JSON.parse(e.data)
             if (dataNtfy) {
                 clearTimeout(tryconnectIV);
@@ -236,7 +236,7 @@ async function fetchNtfy() {
                         responseTime2 = Date.now();
                         console.log("received valid json data...");
                         clearTimeout(jsonAlarmIV);
-                        jsonAlarmIV = setTimeout(jsonLimit, 60000);
+                        jsonAlarmIV = setTimeout(jsonLimit, 90000);
                     } catch (e) {
                         console.log(e);
                         document.getElementById('receiveNote').style.background = "red";
@@ -289,281 +289,281 @@ function fetchJson() {
     //isittime = 1;
     if (isittime2) {
         document.getElementById('allList').style.filter = "blur(0)";
-        html = '';
-        html2 = '';
-        html3 = '';
-        dataT = [];
-        let i = -1;
-        unit = myJson.WiFi.Hostname;
-        unitNr = myJson.System['Unit Number'];
-        sysInfo = myJson.System
-        htSys = '<div class="syspair"><div>';
-        syshtml = (htSys + 'Sysinfo</div><div>' + unit + '</div></div>' +
-            htSys + 'Local Time:</div><div>' + sysInfo['Local Time'] + '</div></div>' +
-            htSys + 'Uptime:</div><div>' + minutesToDhm(sysInfo['Uptime']) + '</div></div>' +
-            htSys + 'Load:</div><div>' + sysInfo['Load'] + '%</div></div>' +
-            htSys + 'Free Ram:</div><div>' + sysInfo['Free RAM'] + '</div></div>' +
-            htSys + 'Free Stack:</div><div>' + sysInfo['Free Stack'] + '</div></div>' +
-            htSys + 'IP Address:</div><div>' + myJson.WiFi['IP Address'] + '</div></div>' +
-            htSys + 'RSSI:</div><div>' + myJson.WiFi['RSSI'] + ' dBm</div></div>' +
-            htSys + 'Build:</div><div>' + sysInfo['Build'] + '</div></div>' +
-            htSys + 'Eco Mode:</div><div>' + (sysInfo['CPU Eco Mode'] == "true" ? 'on' : 'off') + '</div></div>')
-
-        jsonT = myJson.System['Local Time'];
-        clockBig = jsonT.split(" ")[1];
-        clockBig = clockBig.split(':');
-        clockBig.pop();
-        clockBig = clockBig.join(':');
-        dateBig = jsonT.split(" ")[0];
-        dateD = dateBig.split('-')[2];
-        dateM = dateBig.split('-')[1];
-        dateY = dateBig.split('-')[0];
-
-        if (!myJson.Sensors.length) {
-            html += '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">no tasks configured...</div>';
-        }
-        else {
-            myJson.Sensors.forEach(sensor => {
-                utton = sensor.TaskName;
-                htS1 = ' sensorset clickables" onmouseup="setTimeout(blurInput.bind(null, \'1\',), 100);" onclick="playSound(3000), ';
-                htS2 = '<div  class="sensors" style="font-weight:bold;">' + utton + '</div>'
-                exC = !![38].indexOf(sensor.TaskDeviceNumber); //all PluginNR in an array that need to be excluded 
-                exC2 = !sensor.Type?.includes("Display")
-                taskEnabled = sensor.TaskEnabled.toString();
-                if (taskEnabled === "true" && sensor.TaskValues && !utton.includes("XX") && exC && exC2 && !hasParams) {
-                    someoneEn = 1;
-                    firstItem = true;
-                    sensor.TaskValues.forEach(item => {
-                        wasUsed = false;
-                        if (item.Name.toString().includes("XX")) { wasUsed = true; }
-                        if (item.Value == "nan") { item.Value = 0; item.NrDecimals = 0; }
-                        if (typeof item.Value == 'number') {
-                            num2Value = item.Value.toFixed(item.NrDecimals);
-                        }
-                        else { num2Value = item.Value; }
-                        iN = item.Name.toString();
-                        itemN = iN.split("?")[0];
-                        kindN = iN.split("?")[1];
-                        if (!kindN) { kindN = ""; }
-                        if (kindN == "H") { kindN = "%"; }
-                        slMax = 1023;
-                        slMin = 0;
-                        slStep = 1;
-                        whichSl = 0;
-                        //thingspeak check
-                        if ((iN.match(/\&/g) || []).length >= 2) {
-                            i++;
-                            if (dataT2.length === 0) { itemTSName = 0; }
-                            else { itemTSName = dataT2[i]; }
-                            isTspeak = true;
-                            itemN = iN.split("&")[0];
-                            chanN = iN.split("&")[1];
-                            fieldN = iN.split("&")[2];
-                            if (fieldN.includes("?")) { fieldN = fieldN.split("?")[0]; }
-                            dataT.push([chanN, fieldN, item.NrDecimals, i]);
-                        }
-                        else { isTspeak = false; }
-                        //normal tiles = html; slider = html2; big values = html3
-                        //switch---------------------------------------------------------
-                        if (sensor.TaskDeviceNumber == 1) {
-                            wasUsed = true;
-                            if ((iN === "btnStateC" && item.Value < 2) || item.Value === 1) { bS = "on"; }
-                            else if (item.Value === 2) { bS = "alert"; }
-                            else { bS = ""; }
-                            if (sensor.TaskDeviceGPIO1 && iN.includes("State")) {
-                                if (iN === "iState") { item.Value = item.Value == 1 ? 0 : 1 };
-                                utton = utton + "?" + sensor.TaskDeviceGPIO1;
-                                html += '<div class="btnTile ' + bS + htS1 + 'buttonClick(\'' + utton + '\', \'' + item.Value + '\')">' + htS2;
-                            }
-                            else if (sensor.TaskDeviceGPIO1 && iN === "ledState") {
-                                html2 += '<div class="sensorset"><input type="range" min="' + slMin + '" max="' + slMax + '"  step="' + slStep + '" value="' + num2Value + '" id="' + utton + '"class="slider ' + sensor.TaskNumber + ',' + item.ValueNumber;
-                                html2 += ' noVal"><div  class="sensors" style="align-items: flex-end;"><div style="font-weight:bold;">' + utton + '</div></div></div>';
-                            }
-                            else if (itemN.includes("btnState")) {
-                                if (itemN === "ibtnState") { item.Value = item.Value == 1 ? 0 : 1 };
-                                if (kindN) { utton = utton + "?" + kindN };
-                                html += '<div class="btnTile ' + bS + htS1 + 'buttonClick(\'' + utton + '\', \'' + item.Value + '\')">' + htS2;
-                            }
-                            else { wasUsed = false; }
-                        }
-                        //dummy---------------------------------------------------------
-                        if (sensor.TaskDeviceNumber == 33 && !["noVal", "XX"].some(v => (iN).includes(v))) {
-                            wasUsed = true;
-                            //button coloring
-                            if ((kindN === "C" && item.Value < 2) || item.Value === 1) { bS = "on"; }
-                            else if (item.Value === 2) { bS = "alert"; }
-                            else { bS = ""; }
-                            //virtual buttons
-                            if ((utton).includes("dButtons")) {
-                                if (item.Value > -1) {
-                                    itemNB = itemN.split("&")[0];
-                                    if (itemN.split("&")[1] == "A") { html += '<div class="btnTile ' + bS + htS1 + 'getNodes(\'' + itemNB + '\')"><div  class="sensors nodes" style="font-weight:bold;">' + itemNB + '</div></div>'; }
-                                    else { html += '<div class="btnTile ' + bS + htS1 + 'buttonClick(\'' + itemN + '\')"><div id="' + itemN + '" class="sensors" style="font-weight:bold;">' + itemNB + '</div></div>'; }
-                                }
-                            }
-                            //push buttons
-                            else if ((utton).includes("pButtons")) {
-                                if (item.Value > -1) {
-                                    itemNB = itemN.split("&")[0];
-                                    html += '<div class="' + bS + ' btnTile push sensorset" onpointerdown="playSound(3000), pushClick(\'' + itemN + '\',1)" onpointerup="pushClick(\'' + itemN + '\',0)"><div id="' + itemN + '" class="sensors" style="font-weight:bold;">' + itemNB + '</div></div>';
-                                }
-                            }
-                            //number input
-                            else if ((utton).includes("vInput")) {
-                                if (!itemN) { itemN = "&nbsp;" }
-                                html += '<div class="sensorset clickables"><div class="sensors" style="font-weight:bold" onclick="getInput(this.nextElementSibling.firstChild)">' + itemN + '</div><div class="valWrap btnTile"><input type="number" class="vInputs ' + sensor.TaskNumber + ',' + item.ValueNumber + '" id="' + itemN + '"name="' + utton + '" placeholder="' + num2Value + '" onkeydown="getInput(this)" onclick="getInput(this,1)"> <div class="kindInput">' + kindN + '</div></div></div>';
-                            }
-                            //normal slider
-                            else if ((utton).includes("vSlider")) {
-                                slName = iN;
-                                slKind = "";
-                                if ((iN.match(/\?/g) || []).length >= 3) {
-                                    slName = iN.split("?")[0];
-                                    slMin = iN.split("?")[1];
-                                    slMax = iN.split("?")[2];
-                                    slStep = iN.split("?")[3];
-                                    slKind = iN.split("?")[4];
-                                }
-                                if (!slKind) { slKind = ""; } if (slKind == "H") { slKind = "%"; }
-                                html2 += '<div class="sensorset"><input type="range" min="' + slMin + '" max="' + slMax + '"  step="' + slStep + '" value="' + num2Value + '" id="' + iN + '"class="slider sL ' + sensor.TaskNumber + ',' + item.ValueNumber;
-                                if ((utton).includes("nvSlider")) { html2 += ' noVal"><div  class="sensors" style="align-items: flex-end;"><div style="font-weight:bold;">' + slName + '</div></div></div>'; }
-                                else { html2 += '"><div  class="sensors" style="align-items: flex-end;"><div style="font-weight:bold;">' + slName + '</div><div class="sliderAmount" style="text-align: right;">' + num2Value + slKind + '</div></div></div>'; }
-                            }
-                            //time slider
-                            else if ((utton).includes("tSlider")) {
-                                slT1 = item.Value.toFixed(4);
-                                slT2 = (slT1 + "").split(".")[1];
-                                slT1 = Math.floor(slT1);
-                                hour1 = Math.floor(slT1 / 60);
-                                minute1 = slT1 % 60;
-                                const padded1 = minute1.toString().padStart(2, "0");
-                                hour2 = Math.floor(slT2 / 60);
-                                minute2 = slT2 % 60;
-                                const padded2 = minute2.toString().padStart(2, "0");
-                                htmlSlider1 = '<input class="slTS" type="range" min="0" max="1440" step="5" value="';
-                                html2 += '<div id="' + iN + '" class="slTimeSetWrap ' + utton + ' ' + sensor.TaskNumber + ',' + item.ValueNumber + '" style="font-weight:bold;">' + iN + '<div class="slTimeText"> <span class="hAmount1">' + hour1 + '</span><span>:</span><span class="mAmount1">' + padded1 + '</span><span>-</span><span class="hAmount2">' + hour2 + '</span><span>:</span><span class="mAmount2">' + padded2 + '</span></div><div class="slTimeSet">' + htmlSlider1 + slT1 + '" id="' + iN + 'L">' + htmlSlider1 + slT2 + '" id="' + iN + 'R"></div></div>';
-
-                            }
-                            //neopixel slider
-                            else if ((utton).includes("neoPixel")) {
-                                html2 += '<input type="range"max="'
-                                neo1 = 'min="0" value="' + num2Value + '" id="' + utton;
-                                neo2 = '"class="sL npSl ' + sensor.TaskNumber + ',' + item.ValueNumber;
-                                switch (iN) {
-                                    case 'h':
-                                        html2 += '359"' + neo1 + '?H' + neo2 + ' npH noVal">';
-                                        break;
-                                    case 's':
-                                        html2 += '100"' + neo1 + '?S' + neo2 + ' npS noVal">';
-                                        break;
-                                    case 'v':
-                                        html2 += '100"' + neo1 + '?V' + neo2 + ' npV noVal">';
-                                        break;
-                                    default:
-                                }
-                            }
-                            //handle hiding of dummy tiles
-                            else if (iN.includes("noValAuto")) {
-                                if (window.innerWidth >= 450) {
-                                    html += '<div class="sensorset"><div></div><div</div></div>';
-                                }
-                            }
-                            else if (iN.includes("noVal")) { html += '<div class="sensorset"><div></div><div</div></div>'; }
-
-                            else { wasUsed = false; }
-                        }
-                        //big values---------------------------------------------------------
-                        if ((utton).includes("bigVal")) {
-                            let htmlBig1 = `<div class="valuesBig" style="font-weight:bold;text-align:left;">`;
-                            if (firstItem == true) {
-                                html3 += '<div class="bigNum">';
-                                if (bigLength < sensor.TaskValues.length) { bigLength = sensor.TaskValues.length };
-                            }
-                            if (!(iN).includes("XX")) {
-                                if ((utton).includes("bigValC")) {
-                                    if (sensor.TaskValues.length === 3 && !(sensor.TaskValues).some(item => iN === 'XX')) { html3 += '<div class="bigNumWrap bigC bigSpan">'; }
-                                    else { html3 += '<div class="bigNumWrap bigC">'; }
-                                }
-                                else {
-                                    if (sensor.TaskValues.length === 3 && !(sensor.TaskValues).some(item => iN === 'XX')) { html3 += '<div class="bigNumWrap bigSpan">'; }
-                                    else { html3 += '<div class="bigNumWrap">'; }
-                                }
-                                htS3 = htmlBig1 + iN + '</div><div id="'
-                                if (["Clock", "Uhr", "Zeit", "Time"].some(v => (iN).includes(v))) { //(item.Name).toLowerCase().includes(v)
-                                    html3 += htS3 + 'clock" class="valueBig">' + clockBig + '</div></div>';
-                                }
-                                else if ((iN).toLowerCase().includes("datum")) {
-                                    html3 += htS3 + 'date" class="valueBig">' + dateD + '.' + dateM.toString() + '</div></div>';
-                                }
-                                else if ((iN).toLowerCase().includes("date")) {
-                                    html3 += htS3 + 'date" class="valueBig">' + dateM + '-' + dateD.toString() + '</div></div>';
-                                }
-                                else if (["year", "jahr"].some(v => (iN).toLowerCase().includes(v))) {
-                                    html3 += htS3 + 'year" class="valueBig">' + dateY + '</div></div>';
-                                }
-                                else if (iN.includes("noVal")) { html3 += htmlBig1 + '</div><div class="valueBig"></span></div></div>'; }
-                                else {
-                                    if (isTspeak) { html3 += htmlBig1 + itemN + '</div><div id="' + itemN + 'TS" class="valueBig">' + itemTSName + '<span style="background:none;padding-right: 1%;">' + kindN + '</span></div></div>'; }
-                                    else { html3 += htmlBig1 + itemN + '</div><div class="valueBig">' + num2Value + '<span style="background:none;padding-right: 1%;">' + kindN + '</span></div></div>'; }
-                                }
-                            }
-                            wasUsed = true;
-                        }
-                        // if all items with a specific delaration are processed do the rest---------------------------------------------------------
-                        if (!wasUsed) {
-                            if (firstItem == true) { html += '<div class="' + htS1 + 'buttonClick(\'' + utton + '\')">' + htS2; }
-                            if (isTspeak) { html += '<div class="values thingspeak"><div>' + itemN + '</div><div id="' + itemN + 'TS">' + itemTSName + kindN + '</div></div>'; }
-                            else if (iN.includes("noVal")) { html += '<div class="values therest"><div>&nbsp;</div><div></div></div>'; }
-                            else if (sensor.TaskDeviceNumber == 81) { html += '<div class="cron"><div>' + itemN + '</div><div style="font-size: 10pt;">' + item.Value + '</div></div>'; }
-                            else { html += '<div class="values therest"><div>' + itemN + '</div><div>' + num2Value + kindN + '</div></div>'; }
-                        }
-                        firstItem = false;
-                    });
-                    html += '</div>';
-                    html3 += '</div>';
-                }
-                else if (taskEnabled === "true" && !utton.includes("XX") && exC && exC2 && !hasParams) { html += '<div  class="sensorset clickables" onclick="buttonClick(\'' + utton + '\')"><div class="sensors" style="font-weight:bold;">' + utton + '</div><div></div><div></div></div>'; someoneEn = 1; document.getElementById('sensorList').innerHTML = html; }
-            });
-            if (!someoneEn && !hasParams) {
-                html += '<div class="sensorset clickables" onclick="splitOn(); topF()"> <div class="sensors" style="font-weight:bold;">no tasks enabled or visible...</div>';
-            }
-        }
-
-        document.getElementById('sysInfo').innerHTML = syshtml;
-        document.getElementById('sensorList').innerHTML = html;
-        document.getElementById('sliderList').innerHTML = html2;
-        document.getElementById('bigNumber').innerHTML = html3;
-
-        if (firstRun) {
-            if (userAgent.match(/iPhone/i)) {
-                document.body.style.height = "101vh";
-            }
-            //setInterval(fetchJson, 2000);
-            setInterval(getTS, 10000);
-            getTS();
-            getNodes();
-            //longPressS();
-            //longPressN();
-            unitNrdefault = myJson.System['Unit Number'];
-            /*nP2 = 'http://' + myJson.WiFi['IP Address'] + '/devices';
-            nP = 'http://' + myJson.WiFi['IP Address'] + '/tools';*/
-            firstRun = 0;
-        }
-        /*if (unitNr === unitNr1) { styleU = "&#8858;"; }
-        else { styleU = ""; }*/
-        unitNr1 = myJson.System['Unit Number'];
-        if (!hasParams) {
-            document.getElementById('unitInf').innerHTML = unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
-            document.getElementById('unitT').innerHTML = unit;
-        }
-        getNodes();
-        paramS();
-        changeCss();
-        resizeText();
-        longPressB();
-        longPressS();
-        if (event && dataT.length) { dataT2 = []; getTS(); }
     }
+    html = '';
+    html2 = '';
+    html3 = '';
+    dataT = [];
+    let i = -1;
+    unit = myJson.WiFi.Hostname;
+    unitNr = myJson.System['Unit Number'];
+    sysInfo = myJson.System
+    htSys = '<div class="syspair"><div>';
+    syshtml = (htSys + 'Sysinfo</div><div>' + unit + '</div></div>' +
+        htSys + 'Local Time:</div><div>' + sysInfo['Local Time'] + '</div></div>' +
+        htSys + 'Uptime:</div><div>' + minutesToDhm(sysInfo['Uptime']) + '</div></div>' +
+        htSys + 'Load:</div><div>' + sysInfo['Load'] + '%</div></div>' +
+        htSys + 'Free Ram:</div><div>' + sysInfo['Free RAM'] + '</div></div>' +
+        htSys + 'Free Stack:</div><div>' + sysInfo['Free Stack'] + '</div></div>' +
+        htSys + 'IP Address:</div><div>' + myJson.WiFi['IP Address'] + '</div></div>' +
+        htSys + 'RSSI:</div><div>' + myJson.WiFi['RSSI'] + ' dBm</div></div>' +
+        htSys + 'Build:</div><div>' + sysInfo['Build'] + '</div></div>' +
+        htSys + 'Eco Mode:</div><div>' + (sysInfo['CPU Eco Mode'] == "true" ? 'on' : 'off') + '</div></div>')
+
+    jsonT = myJson.System['Local Time'];
+    clockBig = jsonT.split(" ")[1];
+    clockBig = clockBig.split(':');
+    clockBig.pop();
+    clockBig = clockBig.join(':');
+    dateBig = jsonT.split(" ")[0];
+    dateD = dateBig.split('-')[2];
+    dateM = dateBig.split('-')[1];
+    dateY = dateBig.split('-')[0];
+
+    if (!myJson.Sensors.length) {
+        html += '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">no tasks configured...</div>';
+    }
+    else {
+        myJson.Sensors.forEach(sensor => {
+            utton = sensor.TaskName;
+            htS1 = ' sensorset clickables" onmouseup="setTimeout(blurInput.bind(null, \'1\',), 100);" onclick="playSound(3000), ';
+            htS2 = '<div  class="sensors" style="font-weight:bold;">' + utton + '</div>'
+            exC = !![38].indexOf(sensor.TaskDeviceNumber); //all PluginNR in an array that need to be excluded 
+            exC2 = !sensor.Type?.includes("Display")
+            taskEnabled = sensor.TaskEnabled.toString();
+            if (taskEnabled === "true" && sensor.TaskValues && !utton.includes("XX") && exC && exC2 && !hasParams) {
+                someoneEn = 1;
+                firstItem = true;
+                sensor.TaskValues.forEach(item => {
+                    wasUsed = false;
+                    if (item.Name.toString().includes("XX")) { wasUsed = true; }
+                    if (item.Value == "nan") { item.Value = 0; item.NrDecimals = 0; }
+                    if (typeof item.Value == 'number') {
+                        num2Value = item.Value.toFixed(item.NrDecimals);
+                    }
+                    else { num2Value = item.Value; }
+                    iN = item.Name.toString();
+                    itemN = iN.split("?")[0];
+                    kindN = iN.split("?")[1];
+                    if (!kindN) { kindN = ""; }
+                    if (kindN == "H") { kindN = "%"; }
+                    slMax = 1023;
+                    slMin = 0;
+                    slStep = 1;
+                    whichSl = 0;
+                    //thingspeak check
+                    if ((iN.match(/\&/g) || []).length >= 2) {
+                        i++;
+                        if (dataT2.length === 0) { itemTSName = 0; }
+                        else { itemTSName = dataT2[i]; }
+                        isTspeak = true;
+                        itemN = iN.split("&")[0];
+                        chanN = iN.split("&")[1];
+                        fieldN = iN.split("&")[2];
+                        if (fieldN.includes("?")) { fieldN = fieldN.split("?")[0]; }
+                        dataT.push([chanN, fieldN, item.NrDecimals, i]);
+                    }
+                    else { isTspeak = false; }
+                    //normal tiles = html; slider = html2; big values = html3
+                    //switch---------------------------------------------------------
+                    if (sensor.TaskDeviceNumber == 1) {
+                        wasUsed = true;
+                        if ((iN === "btnStateC" && item.Value < 2) || item.Value === 1) { bS = "on"; }
+                        else if (item.Value === 2) { bS = "alert"; }
+                        else { bS = ""; }
+                        if (sensor.TaskDeviceGPIO1 && iN.includes("State")) {
+                            if (iN === "iState") { item.Value = item.Value == 1 ? 0 : 1 };
+                            utton = utton + "?" + sensor.TaskDeviceGPIO1;
+                            html += '<div class="btnTile ' + bS + htS1 + 'buttonClick(\'' + utton + '\', \'' + item.Value + '\')">' + htS2;
+                        }
+                        else if (sensor.TaskDeviceGPIO1 && iN === "ledState") {
+                            html2 += '<div class="sensorset"><input type="range" min="' + slMin + '" max="' + slMax + '"  step="' + slStep + '" value="' + num2Value + '" id="' + utton + '"class="slider ' + sensor.TaskNumber + ',' + item.ValueNumber;
+                            html2 += ' noVal"><div  class="sensors" style="align-items: flex-end;"><div style="font-weight:bold;">' + utton + '</div></div></div>';
+                        }
+                        else if (itemN.includes("btnState")) {
+                            if (itemN === "ibtnState") { item.Value = item.Value == 1 ? 0 : 1 };
+                            if (kindN) { utton = utton + "?" + kindN };
+                            html += '<div class="btnTile ' + bS + htS1 + 'buttonClick(\'' + utton + '\', \'' + item.Value + '\')">' + htS2;
+                        }
+                        else { wasUsed = false; }
+                    }
+                    //dummy---------------------------------------------------------
+                    if (sensor.TaskDeviceNumber == 33 && !["noVal", "XX"].some(v => (iN).includes(v))) {
+                        wasUsed = true;
+                        //button coloring
+                        if ((kindN === "C" && item.Value < 2) || item.Value === 1) { bS = "on"; }
+                        else if (item.Value === 2) { bS = "alert"; }
+                        else { bS = ""; }
+                        //virtual buttons
+                        if ((utton).includes("dButtons")) {
+                            if (item.Value > -1) {
+                                itemNB = itemN.split("&")[0];
+                                if (itemN.split("&")[1] == "A") { html += '<div class="btnTile ' + bS + htS1 + 'getNodes(\'' + itemNB + '\')"><div  class="sensors nodes" style="font-weight:bold;">' + itemNB + '</div></div>'; }
+                                else { html += '<div class="btnTile ' + bS + htS1 + 'buttonClick(\'' + itemN + '\')"><div id="' + itemN + '" class="sensors" style="font-weight:bold;">' + itemNB + '</div></div>'; }
+                            }
+                        }
+                        //push buttons
+                        else if ((utton).includes("pButtons")) {
+                            if (item.Value > -1) {
+                                itemNB = itemN.split("&")[0];
+                                html += '<div class="' + bS + ' btnTile push sensorset" onpointerdown="playSound(3000), pushClick(\'' + itemN + '\',1)" onpointerup="pushClick(\'' + itemN + '\',0)"><div id="' + itemN + '" class="sensors" style="font-weight:bold;">' + itemNB + '</div></div>';
+                            }
+                        }
+                        //number input
+                        else if ((utton).includes("vInput")) {
+                            if (!itemN) { itemN = "&nbsp;" }
+                            html += '<div class="sensorset clickables"><div class="sensors" style="font-weight:bold" onclick="getInput(this.nextElementSibling.firstChild)">' + itemN + '</div><div class="valWrap btnTile"><input type="number" class="vInputs ' + sensor.TaskNumber + ',' + item.ValueNumber + '" id="' + itemN + '"name="' + utton + '" placeholder="' + num2Value + '" onkeydown="getInput(this)" onclick="getInput(this,1)"> <div class="kindInput">' + kindN + '</div></div></div>';
+                        }
+                        //normal slider
+                        else if ((utton).includes("vSlider")) {
+                            slName = iN;
+                            slKind = "";
+                            if ((iN.match(/\?/g) || []).length >= 3) {
+                                slName = iN.split("?")[0];
+                                slMin = iN.split("?")[1];
+                                slMax = iN.split("?")[2];
+                                slStep = iN.split("?")[3];
+                                slKind = iN.split("?")[4];
+                            }
+                            if (!slKind) { slKind = ""; } if (slKind == "H") { slKind = "%"; }
+                            html2 += '<div class="sensorset"><input type="range" min="' + slMin + '" max="' + slMax + '"  step="' + slStep + '" value="' + num2Value + '" id="' + iN + '"class="slider sL ' + sensor.TaskNumber + ',' + item.ValueNumber;
+                            if ((utton).includes("nvSlider")) { html2 += ' noVal"><div  class="sensors" style="align-items: flex-end;"><div style="font-weight:bold;">' + slName + '</div></div></div>'; }
+                            else { html2 += '"><div  class="sensors" style="align-items: flex-end;"><div style="font-weight:bold;">' + slName + '</div><div class="sliderAmount" style="text-align: right;">' + num2Value + slKind + '</div></div></div>'; }
+                        }
+                        //time slider
+                        else if ((utton).includes("tSlider")) {
+                            slT1 = item.Value.toFixed(4);
+                            slT2 = (slT1 + "").split(".")[1];
+                            slT1 = Math.floor(slT1);
+                            hour1 = Math.floor(slT1 / 60);
+                            minute1 = slT1 % 60;
+                            const padded1 = minute1.toString().padStart(2, "0");
+                            hour2 = Math.floor(slT2 / 60);
+                            minute2 = slT2 % 60;
+                            const padded2 = minute2.toString().padStart(2, "0");
+                            htmlSlider1 = '<input class="slTS" type="range" min="0" max="1440" step="5" value="';
+                            html2 += '<div id="' + iN + '" class="slTimeSetWrap ' + utton + ' ' + sensor.TaskNumber + ',' + item.ValueNumber + '" style="font-weight:bold;">' + iN + '<div class="slTimeText"> <span class="hAmount1">' + hour1 + '</span><span>:</span><span class="mAmount1">' + padded1 + '</span><span>-</span><span class="hAmount2">' + hour2 + '</span><span>:</span><span class="mAmount2">' + padded2 + '</span></div><div class="slTimeSet">' + htmlSlider1 + slT1 + '" id="' + iN + 'L">' + htmlSlider1 + slT2 + '" id="' + iN + 'R"></div></div>';
+
+                        }
+                        //neopixel slider
+                        else if ((utton).includes("neoPixel")) {
+                            html2 += '<input type="range"max="'
+                            neo1 = 'min="0" value="' + num2Value + '" id="' + utton;
+                            neo2 = '"class="sL npSl ' + sensor.TaskNumber + ',' + item.ValueNumber;
+                            switch (iN) {
+                                case 'h':
+                                    html2 += '359"' + neo1 + '?H' + neo2 + ' npH noVal">';
+                                    break;
+                                case 's':
+                                    html2 += '100"' + neo1 + '?S' + neo2 + ' npS noVal">';
+                                    break;
+                                case 'v':
+                                    html2 += '100"' + neo1 + '?V' + neo2 + ' npV noVal">';
+                                    break;
+                                default:
+                            }
+                        }
+                        //handle hiding of dummy tiles
+                        else if (iN.includes("noValAuto")) {
+                            if (window.innerWidth >= 450) {
+                                html += '<div class="sensorset"><div></div><div</div></div>';
+                            }
+                        }
+                        else if (iN.includes("noVal")) { html += '<div class="sensorset"><div></div><div</div></div>'; }
+
+                        else { wasUsed = false; }
+                    }
+                    //big values---------------------------------------------------------
+                    if ((utton).includes("bigVal")) {
+                        let htmlBig1 = `<div class="valuesBig" style="font-weight:bold;text-align:left;">`;
+                        if (firstItem == true) {
+                            html3 += '<div class="bigNum">';
+                            if (bigLength < sensor.TaskValues.length) { bigLength = sensor.TaskValues.length };
+                        }
+                        if (!(iN).includes("XX")) {
+                            if ((utton).includes("bigValC")) {
+                                if (sensor.TaskValues.length === 3 && !(sensor.TaskValues).some(item => iN === 'XX')) { html3 += '<div class="bigNumWrap bigC bigSpan">'; }
+                                else { html3 += '<div class="bigNumWrap bigC">'; }
+                            }
+                            else {
+                                if (sensor.TaskValues.length === 3 && !(sensor.TaskValues).some(item => iN === 'XX')) { html3 += '<div class="bigNumWrap bigSpan">'; }
+                                else { html3 += '<div class="bigNumWrap">'; }
+                            }
+                            htS3 = htmlBig1 + iN + '</div><div id="'
+                            if (["Clock", "Uhr", "Zeit", "Time"].some(v => (iN).includes(v))) { //(item.Name).toLowerCase().includes(v)
+                                html3 += htS3 + 'clock" class="valueBig">' + clockBig + '</div></div>';
+                            }
+                            else if ((iN).toLowerCase().includes("datum")) {
+                                html3 += htS3 + 'date" class="valueBig">' + dateD + '.' + dateM.toString() + '</div></div>';
+                            }
+                            else if ((iN).toLowerCase().includes("date")) {
+                                html3 += htS3 + 'date" class="valueBig">' + dateM + '-' + dateD.toString() + '</div></div>';
+                            }
+                            else if (["year", "jahr"].some(v => (iN).toLowerCase().includes(v))) {
+                                html3 += htS3 + 'year" class="valueBig">' + dateY + '</div></div>';
+                            }
+                            else if (iN.includes("noVal")) { html3 += htmlBig1 + '</div><div class="valueBig"></span></div></div>'; }
+                            else {
+                                if (isTspeak) { html3 += htmlBig1 + itemN + '</div><div id="' + itemN + 'TS" class="valueBig">' + itemTSName + '<span style="background:none;padding-right: 1%;">' + kindN + '</span></div></div>'; }
+                                else { html3 += htmlBig1 + itemN + '</div><div class="valueBig">' + num2Value + '<span style="background:none;padding-right: 1%;">' + kindN + '</span></div></div>'; }
+                            }
+                        }
+                        wasUsed = true;
+                    }
+                    // if all items with a specific delaration are processed do the rest---------------------------------------------------------
+                    if (!wasUsed) {
+                        if (firstItem == true) { html += '<div class="' + htS1 + 'buttonClick(\'' + utton + '\')">' + htS2; }
+                        if (isTspeak) { html += '<div class="values thingspeak"><div>' + itemN + '</div><div id="' + itemN + 'TS">' + itemTSName + kindN + '</div></div>'; }
+                        else if (iN.includes("noVal")) { html += '<div class="values therest"><div>&nbsp;</div><div></div></div>'; }
+                        else if (sensor.TaskDeviceNumber == 81) { html += '<div class="cron"><div>' + itemN + '</div><div style="font-size: 10pt;">' + item.Value + '</div></div>'; }
+                        else { html += '<div class="values therest"><div>' + itemN + '</div><div>' + num2Value + kindN + '</div></div>'; }
+                    }
+                    firstItem = false;
+                });
+                html += '</div>';
+                html3 += '</div>';
+            }
+            else if (taskEnabled === "true" && !utton.includes("XX") && exC && exC2 && !hasParams) { html += '<div  class="sensorset clickables" onclick="buttonClick(\'' + utton + '\')"><div class="sensors" style="font-weight:bold;">' + utton + '</div><div></div><div></div></div>'; someoneEn = 1; document.getElementById('sensorList').innerHTML = html; }
+        });
+        if (!someoneEn && !hasParams) {
+            html += '<div class="sensorset clickables" onclick="splitOn(); topF()"> <div class="sensors" style="font-weight:bold;">no tasks enabled or visible...</div>';
+        }
+    }
+
+    document.getElementById('sysInfo').innerHTML = syshtml;
+    document.getElementById('sensorList').innerHTML = html;
+    document.getElementById('sliderList').innerHTML = html2;
+    document.getElementById('bigNumber').innerHTML = html3;
+
+    if (firstRun) {
+        if (userAgent.match(/iPhone/i)) {
+            document.body.style.height = "101vh";
+        }
+        //setInterval(fetchJson, 2000);
+        setInterval(getTS, 10000);
+        getTS();
+        getNodes();
+        //longPressS();
+        //longPressN();
+        unitNrdefault = myJson.System['Unit Number'];
+        /*nP2 = 'http://' + myJson.WiFi['IP Address'] + '/devices';
+        nP = 'http://' + myJson.WiFi['IP Address'] + '/tools';*/
+        firstRun = 0;
+    }
+    /*if (unitNr === unitNr1) { styleU = "&#8858;"; }
+    else { styleU = ""; }*/
+    unitNr1 = myJson.System['Unit Number'];
+    if (!hasParams) {
+        document.getElementById('unitInf').innerHTML = unit + '<span class="numberUnit"> (' + myJson.WiFi.RSSI + ')</span>';
+        document.getElementById('unitT').innerHTML = unit;
+    }
+    getNodes();
+    paramS();
+    changeCss();
+    resizeText();
+    longPressB();
+    longPressS();
+    if (event && dataT.length) { dataT2 = []; getTS(); }
 }
 
 async function getTS() {
