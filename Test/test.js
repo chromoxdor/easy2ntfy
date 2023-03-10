@@ -21,6 +21,7 @@ var hasParams = 1;
 var dataT = [];
 var dataT2 = [];
 var isittime = 1;
+var isittime2 = 1;
 var NrofSlides = 0;
 var currVal;
 var html;
@@ -210,6 +211,7 @@ async function fetchNtfy() {
         eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
         isSSE = true;
         eventSource.onmessage = (e) => {
+            if (e.data.includes(ntfyChannel.split("/")[0] + "/file")) { alert("json message has become too long \nntfy can only handle messages <= 4096byte") }
             dataNtfy = JSON.parse(e.data)
             if (dataNtfy) {
                 clearTimeout(tryconnectIV);
@@ -234,7 +236,7 @@ async function fetchNtfy() {
                         responseTime2 = Date.now();
                         console.log("received valid json data...");
                         clearTimeout(jsonAlarmIV);
-                        jsonAlarmIV = setTimeout(jsonLimit, 20000);
+                        jsonAlarmIV = setTimeout(jsonLimit, 60000);
                     } catch (e) {
                         console.log(e);
                         document.getElementById('receiveNote').style.background = "red";
@@ -256,6 +258,7 @@ async function sendReady(x) {
         if (x) { getUrl("", "send1"); }
         else getUrl("", "send");
     }
+    isittime2 = 1;
 }
 
 function jsonLimit() {
@@ -265,7 +268,7 @@ function jsonLimit() {
         readyIV = setInterval(sendReady, 60000);
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">This page will refresh in a minute...<pre>';
-        alert("You probably reached the limit of json updates \n(https://docs.ntfy.sh/publish/#limitations) \nor easy2nfy became unavailable \n...please wait a moment...")
+        alert("Either easy2nfty became unavailable \nor you reached the limit of json updates \n(https://docs.ntfy.sh/publish/#limitations) \n...please wait a moment...")
     }
 }
 
@@ -283,9 +286,8 @@ function fetchJson() {
     someoneEn = 0;
     //if (!jsonPath) { jsonPath = ntfyJson; }
     //myJson = jsonPath
-    isittime = 1;
-    if (isittime) {
-        console.log(myJson);
+    //isittime = 1;
+    if (isittime2) {
         document.getElementById('allList').style.filter = "blur(0)";
         html = '';
         html2 = '';
@@ -1047,11 +1049,15 @@ async function getUrl(url, title) {
             });
             if (response.status == 429) {
                 clearTimeout(readyIV);
-                alert("You reached the limit of commands, please wait a moment and reload \n(https://docs.ntfy.sh/publish/#limitations)");
+                readyIV = setInterval(sendReady, 60000);
+                isittime2 = 0
+                if (!firstRun) { document.getElementById('allList').style.filter = "blur(5px)"; }
+                alert("You reached the limit of commands, please wait a moment... \n(https://docs.ntfy.sh/publish/#limitations)");
                 document.getElementById('receiveNote').style.opacity = 1;
                 document.getElementById('receiveNote').style.background = "red";
                 setTimeout(receiveNote, 500);
             } else if (response.status == 200) {
+                isittime2 = 1
                 document.getElementById('receiveNote').style.opacity = 1;
                 document.getElementById('receiveNote').style.background = "blue";
                 setTimeout(receiveNote, 500);
@@ -1110,14 +1116,16 @@ document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         console.log("visible");
         invisible = false;
-        clearTimeout(readyIV);
-        readyIV = setInterval(sendReady, 60000);
-        sendReady();
+        if (isittime2) {
+            clearTimeout(readyIV);
+            readyIV = setInterval(sendReady, 60000);
+            sendReady();
+        }
     } else {
         console.log("invisible");
         invisible = true;
         clearTimeout(jsonAlarmIV);
-        getUrl("", "stop");
+        if (isittime2) { getUrl("", "stop"); }
     }
 });
 
