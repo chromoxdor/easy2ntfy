@@ -63,7 +63,7 @@ Filtering out unnecessary JSON by esasy2ntfy shortens the output but a node (esp
 
   
 Sometimes easy2ntfy hangs and with it the serial connection which makes it hard for me to debug. For now a reboot solves the issue. 
-(This did not happen for a long time now since a made some changes in terms of memory usage...mabye it is resolved)
+(This did not happen for a long time now since a made some changes in terms of memory usage...maybe it is resolved)
 
 
 ## **How to use:**
