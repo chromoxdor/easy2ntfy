@@ -189,7 +189,7 @@ void parseWsMessage() {
   toESPcommandStr = toESPcommand;
   Serial.println(sendOKStr.indexOf("send"));
 
-  if (sendOKStr.indexOf("send") != -1) { 
+  if (sendOKStr.indexOf("send") != -1) {
     digitalWrite(ledPin, LOW);
     Serial.println("sending data...");
     receiveLoop = true;
@@ -213,7 +213,9 @@ void parseWsMessage() {
 
   } else if (sendOKStr == "kill") {
     notkilled = false;
-    lastTime = millis() - (timerDelay - 1000);  //sending json immediately
+    //lastTime = millis() - (timerDelay - 1000);  //sending json immediately
+    GetJson();
+    lastTime = millis();
 
   } else if ((sendOKStr == "command" || sendOKStr == "dualcommand") && receiveLoop && notkilled) {
     if (abs(getTime() - receiveTime) <= 2) {

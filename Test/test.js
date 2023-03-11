@@ -54,6 +54,12 @@ var jsonAlarmIV;
 var tryconnectIV;
 var redSelection;
 var invisible = false;
+var switchLocal = true;
+var localJsonIV;
+var localJsonIp
+var isLocal = false;
+var receiveN;
+var local2remote;
 
 //------------------------------------channel & cookie handling------------------------------------------------------
 function addChan() {
@@ -127,7 +133,8 @@ function generateChan() {
         document.getElementById('channelList').innerHTML = "no channels added...";
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">Add a channel...\n(Click on the house symbol.)<pre>';
     };
-    longPressB();
+    console.log("longchanbtn");
+    longPressChanBtn();
 }
 function str_obj(str) {
     str = str.split('; ');
@@ -184,9 +191,13 @@ function enterOnInputs() {
         }
     });
 }
-//----------------------------------ntfy handling--------------------------------------------------------------------
+//#################################### ntfy handling ####################################
 
 async function fetchNtfy() {
+    //first run check if we can reach the local node stored in the default ip adress
+    if (switchLocal) {
+        testlocal("192.168.1.102", "Main");
+    }
     responseTime2 = Date.now();
     document.getElementById('unitInf').innerHTML = 'connecting...';
     if (document.cookie.includes("*selectedChannel") && document.cookie.includes("ntfy_")) {
@@ -211,6 +222,7 @@ async function fetchNtfy() {
         eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
         isSSE = true;
         eventSource.onmessage = (e) => {
+            console.log(e);
             if (e.data.includes(ntfyChannel.split("/")[0] + "/file")) { alert("The json-message has become too long \nntfy can only handle messages <= 4096byte") }
             dataNtfy = JSON.parse(e.data)
             if (dataNtfy) {
@@ -241,11 +253,14 @@ async function fetchNtfy() {
                         console.log(e);
                         document.getElementById('receiveNote').style.background = "red";
                     }
+                    if (switchLocal) {
+                        testlocal(myJson.WiFi['IP Address'], myJson.WiFi.Hostname);
+                    }
                 };
             } else {
                 console.log("no json data received");
             }
-            setTimeout(receiveNote, 500);
+            receiveN = setTimeout(receiveNote, 500);
         };
     }
     generateChan();
@@ -277,8 +292,81 @@ function receiveNote() {
     document.getElementById('receiveNote').style.opacity = 0;
     document.getElementById('receiveNote').style.background = "none"
 }
+//#################################### TEST IF WE ARE IN THE SAME NETWORK THAN THE NODES ####################################
 
-//------------------------------------------------------------------------------------------------------
+async function testlocal(localIP, localHost) {
+    switchLocal = false;
+    let controller3 = new AbortController();
+    setTimeout(() => controller3.abort(), 2000);
+    try {
+        response = await fetch('http://' + localIP + '/json', {
+            signal: controller3.signal
+        });
+        localJson = await response.json();
+        localJsonIp = localIP;
+        console.log(localHost, localJson.WiFi.Hostname);
+        if (localHost == localJson.WiFi.Hostname) {
+            clearTimeout(jsonAlarmIV);
+            console.log(isittime2)
+            if (isittime2) {
+                console.log('https://' + ntfyChannel + '?title=stop')
+                await fetch('https://' + ntfyChannel + '?title=stop', {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: {
+                        'Cache': 'no'
+                    }
+                });
+            }
+            isittime2 = 1;
+            clearTimeout(tryconnectIV);
+            clearTimeout(readyIV);
+            clearTimeout(localJsonIV);
+            getLocalJson();
+            localJsonIV = setInterval(getLocalJson, 2000);
+        }
+    } catch (e) {
+        switchLocal = true;
+        console.log("cannot reach local node")
+    }
+}
+//#################################### GET LOCAL JSON ####################################
+
+async function getLocalJson() {
+    document.getElementById('receiveNote').style.opacity = 1;
+    document.getElementById('home').innerHTML = "&#8962;&#xFE0E;"
+    console.log(localJsonIp);
+    console.log("geting json locally")
+    let controller2 = new AbortController();
+    setTimeout(() => controller2.abort(), 2000);
+    try {
+        response = await fetch('http://' + localJsonIp + '/json', {
+            signal: controller2.signal
+        });
+        myJson = await response.json();
+        isLocal = true;
+        clearTimeout(local2remote);
+        fetchJson()
+    } catch {
+        console.log("switching back to ntfy");
+        if (isittime2) {
+            clearTimeout(local2remote);
+            local2remote = setTimeout(ready4Remote, 10000)
+        }
+        return response;
+    }
+}
+function ready4Remote() { //back to getting json via ntfy
+    console.log("ready4remote")
+    switchLocal = true;
+    isLocal = false;
+    document.getElementById('home').innerHTML = ""
+    clearTimeout(localJsonIV);
+    clearTimeout(readyIV);
+    readyIV = setInterval(sendReady, 60000);
+    sendReady(2);
+}
+//#################################### PARSE JSON DATA ####################################
 
 function fetchJson() {
     urlParams = new URLSearchParams(window.location.search);
@@ -868,6 +956,7 @@ function openSys() {
 function getNodes(utton, allNodes, hasIt) {
     let html4 = '';
     nInf = myJson.nodes;
+    console.log(nInf);
     let i = -1;
     myJson.nodes.forEach(node => {
         i++
@@ -906,7 +995,7 @@ function nodeChange(event) {
         console.log(nInf.ip);
         /*nP = `http://${nInf.ip}/tools`;
         nP2 = `http://${nInf.ip}/devices`;*/
-        jsonPath = window[nInf.ip];
+        localJsonIp = nInf.ip;
         console.log(unitNrdefault, nNr);
         if (unitNrdefault == nNr) {
             console.log("replace");
@@ -918,7 +1007,12 @@ function nodeChange(event) {
         }
         //setTimeout(fetchJson, 1000);
         //setTimeout(getNodes, 500);
-        getUrl(nInf.ip, "change_node")
+        if (isLocal) {
+            getLocalJson();
+            clearTimeout(localJsonIV);
+            localJsonIV = setInterval(getLocalJson, 2000);
+        }
+        else { getUrl(nInf.ip, "change_node") }
     }
     if (window.innerWidth < 450 && document.getElementById('sysInfo').offsetHeight === 0) { closeNav(); }
 }
@@ -969,11 +1063,8 @@ function longPressS() {
         cooK = document.cookie;
     });
 }
-
-function longPressB() {
-    var executed = false;
-    const longButtons = document.querySelectorAll(".clickables");
-    const longButtonChans = document.querySelectorAll(".channelItem");
+function longPressChanBtn() {
+    const longButtonChans = document.querySelectorAll(".buttonUnit");
     longButtonChans.forEach(longButtonChan => {
         longButtonChan.addEventListener('long-press', function (e) {
             getUrl("", "kill");
@@ -981,6 +1072,11 @@ function longPressB() {
             isittime = 0;
         });
     });
+}
+
+function longPressB() {
+    var executed = false;
+    const longButtons = document.querySelectorAll(".clickables");
     longButtons.forEach(longButton => {
         longButton.addEventListener('long-press', function (e) {
             const lBName = longButton.querySelector(".sensors");
@@ -1035,15 +1131,24 @@ function playSound(freQ) {
 //timeout fetch requests
 async function getUrl(url, title) {
     if (Date.now() - responseTime > 10000) {
+        console.log(ntfyChannel,title)
         if (!title) title = "command"
         let controller = new AbortController();
-        setTimeout(() => controller.abort(), 5000);
+        if (!isLocal || title == "kill") {
+            setTimeout(() => controller.abort(), 5000);
+            theChannel = 'https://' + ntfyChannel + '?title=' + title + '&message='
+        }
+        else {
+            setTimeout(() => controller.abort(), 1000);
+            theChannel = 'http://' + localJsonIp + '/'
+        }
+
         try {
-            console.log('https://' + ntfyChannel + '?title=' + title + '&message=' + url)
-            response = await fetch('https://' + ntfyChannel + '?title=' + title + '&message=' + url, {
+            console.log(theChannel + url)
+            response = await fetch(theChannel + url, {
                 signal: controller.signal,
                 method: 'POST',
-                //mode:'no-cors',
+                mode: 'cors',
                 headers: {
                     'Cache': 'no'
                 }
@@ -1065,8 +1170,10 @@ async function getUrl(url, title) {
             }
         } catch (error) {
             console.error(error);
-            clearHtml();
-            document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you enter the correct server?\nIs your Server online and reachable?\nTry to reload this page<pre>';
+            if (!isLocal) {
+                clearHtml();
+                document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you enter the correct server?\nIs your Server online and reachable?\nTry to reload this page<pre>';
+            }
         }
         //return response;
     }
@@ -1117,16 +1224,21 @@ document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         console.log("visible");
         invisible = false;
-        if (isittime2) {
+        if (isittime2 && switchLocal) {
             clearTimeout(readyIV);
             readyIV = setInterval(sendReady, 60000);
             sendReady(2);
+        } else if (!switchLocal) {
+            clearTimeout(localJsonIV);
+            getLocalJson();
+            localJsonIV = setInterval(getLocalJson, 2000);
         }
     } else {
         console.log("invisible");
         invisible = true;
         clearTimeout(jsonAlarmIV);
-        if (isittime2) { getUrl("", "stop"); }
+        if (isittime2 && switchLocal) { getUrl("", "stop"); }
+        else if (!switchLocal) { clearTimeout(localJsonIV); }
     }
 });
 

@@ -657,6 +657,8 @@ button.remove {
     align-self: center;
     background: #bbb;
     box-shadow: 0 0 3px 1px rgb(0 0 0 / 35%);
+    display: flex;
+    align-items: center;
 }
 
 @media screen and (max-height: 450px) {
