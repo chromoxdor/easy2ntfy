@@ -51,17 +51,19 @@ Filtering out unnecessary JSON by esasy2ntfy shortens the output but a node (esp
   
 ## **Todo:**
 
- show amount of daily send messages  
+
 - authentication options for self hosted server  
-- add notification when JSON message gets to long  
+- ~~add notification when JSON message gets to long~~  
 - ~~display saved parameters in WiFiManager if available (instead of default values)~~
+- maybe show amount of daily send messages  
   
   
 
 ## **Known issues:**
 
   
-Sometimes easy2ntfy hangs and with it the serial connection which makes it hard for me to debug. For now a reboot solves the issue.  
+Sometimes easy2ntfy hangs and with it the serial connection which makes it hard for me to debug. For now a reboot solves the issue. 
+(This did not happen for a long time now since a made some changes in terms of memory usage...maybe it is resolved)
 
 
 ## **How to use:**
