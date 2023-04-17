@@ -33,16 +33,20 @@ String sendOKStr;
 String toESPcommandStr;
 
 
-unsigned long lastTime = 0;
-unsigned long timerDelay = 10000;
+uint32_t heartbeatTime = 0;
 
-unsigned long lastUpdate = 0;
-unsigned long timerDelay2 = 70000;
+uint32_t previous_time = 0;
+
+uint32_t lastTime = 0;
+uint32_t timerDelay = 10000;
+
+uint32_t lastUpdate = 0;
+uint32_t timerDelay2 = 70000;
 
 String ESPeasyIPchanged;
 const char* sendOK;
 const char* toESPcommand;
-unsigned long receiveTime;
+uint32_t receiveTime;
 bool receiveLoop = false;
 bool connected = false;
 bool notkilled = true;
@@ -52,10 +56,10 @@ bool shouldSaveConfig = false;
 String websockeMsg;
 String topic2 = "_json";  // add this to the ntfy topic to create an extra channel for receiving messages
 
-const int ledPin = LED_BUILTIN;    // the number of the LED pin
-int ledState = LOW;                // ledState used to set the LED
-unsigned long previousMillis = 0;  // will store last time LED was updated
-const long interval = 1000;        // interval at which to blink (milliseconds)
+const int ledPin = LED_BUILTIN;  // the number of the LED pin
+int ledState = LOW;              // ledState used to set the LED
+uint32_t previousMillis = 0;     // will store last time LED was updated
+const long interval = 1000;      // interval at which to blink (milliseconds)
 bool blinkLed = false;
 
 //############################################# GET TIME #########################################
@@ -65,19 +69,19 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org");
 
 // Variable to save current epoch time
-unsigned long epochTime;
+uint32_t epochTime;
 
 // Function that gets current epoch time
-unsigned long getTime() {
+uint32_t getTime() {
   timeClient.update();
-  unsigned long now = timeClient.getEpochTime();
+  uint32_t now = timeClient.getEpochTime();
   return now;
 }
 
 //############################################# CUSTOM PARAMETERS FOR THE WIFI MANAGER #########################################
 
 //Assign output variables to GPIO pins
-char* ESPeasyIP = "0.0.0.0";
+char ESPeasyIP[] = "0.0.0.0";
 char ntfyUrl[80] = "ntfy.envs.net";
 char ntfyTopic[80] = "";
 //char ntfyTag[80] = "1234";
@@ -96,6 +100,7 @@ bool blockWM = false;  // Change this to false if you want your code to continue
 
 //############################################# SETUP ##########################################
 void setup() {
+  analogWriteRange(1023); //needs to set after release 3.0 otherwise Arduino core default is 256
   Serial.begin(115200);
   delay(3000);
   Serial.println("Setup mode...");
@@ -162,6 +167,7 @@ void setup() {
   ws.ping();
 }
 
+
 //############################################# WEBSOCKETS ##########################################
 void onMessageCallback(WebsocketsMessage message) {
   websockeMsg = message.data();
@@ -187,10 +193,10 @@ void parseWsMessage() {
   Serial.println(getTime());
   sendOKStr = sendOK;
   toESPcommandStr = toESPcommand;
-  Serial.println(sendOKStr.indexOf("send"));
+  //Serial.println(sendOKStr.indexOf("send"));
 
   if (sendOKStr.indexOf("send") != -1) {
-    digitalWrite(ledPin, LOW);
+    analogWrite(ledPin, 0);
     Serial.println("sending data...");
     receiveLoop = true;
     lastUpdate = millis();
@@ -218,7 +224,9 @@ void parseWsMessage() {
     lastTime = millis();
 
   } else if ((sendOKStr == "command" || sendOKStr == "dualcommand") && receiveLoop && notkilled) {
-    if (abs(getTime() - receiveTime) <= 2) {
+    Serial.print("time deviation: ");
+    Serial.println(abs(static_cast<long>(getTime()) - static_cast<long>(receiveTime)));
+    if (abs(static_cast<long>(getTime()) - static_cast<long>(receiveTime)) <= 2) {
       if (sendOKStr == "command") {
         Command2ESP(toESPcommandStr);
       } else
@@ -250,6 +258,8 @@ void onEventsCallback(WebsocketsEvent event, String data) {
   if (event == WebsocketsEvent::ConnectionOpened) {
     Serial.println("Connnection Opened");
     analogWrite(ledPin, 1000);
+    Serial.println("inital heartbeat");
+    ws.send("H");
     blinkLed = false;
   } else if (event == WebsocketsEvent::ConnectionClosed) {
     Serial.println("Connnection Closed");
@@ -354,8 +364,25 @@ void loopDeviceWM() {
 //############################################# LOOP ##################################################
 void loop() {
   loopDeviceWM();  // necessary for WIFI MANAGER
-  ws.poll();       // necessary for WEBSOCKETS
 
+  // checking for WIFI connection
+  if ((WiFi.status() != WL_CONNECTED) && (millis() - previous_time >= 30000)) {
+    Serial.println("Reconnecting to WIFI network");
+    WiFi.reconnect();
+    previous_time = millis();
+  }
+
+  // let the websockets client check for incoming messages
+  if (ws.available()) {
+    ws.poll();  // necessary for WEBSOCKETS
+
+    // Send heartbeat in order to avoid disconnections during ISP resetting IPs over night.
+    if ((millis() - heartbeatTime) > 60000) {
+      Serial.println("heartbeat");
+      heartbeatTime = millis();
+      ws.send("H");
+    }
+  }
   //------------------update values of paramaters in WiFiManager--------------------------------
   wm.getParameters()[0]->setValue(ESPeasyIP, 40);
   wm.getParameters()[1]->setValue(ntfyUrl, 80);
@@ -430,7 +457,6 @@ void GetJson() {
   String ESPeasyPath = ESPeasyIPchanged;
   Serial.println(ESPeasyIPchanged);
   ESPeasyPath = "http://" + ESPeasyPath + "/json";
-  // http.begin(client, ESPeasyPath);
 
   // Send request
   http.useHTTP10(true);
@@ -499,8 +525,9 @@ void PostToNtfy() {
   String ntfyTopicStr = ntfyTopic;
   ntfyUrlStr = "http://" + ntfyUrlStr + "/" + ntfyTopicStr + topic2;
 
-  if (minifiedPayload.isEmpty()) {
+  if (minifiedPayload.isEmpty() || minifiedPayload == "null") {
     Serial.println("payload empty");
+    minifiedPayload = "";
   } else {
     if (!notkilled && doingItOnce) {
       minifiedPayload = "killed";
@@ -521,9 +548,6 @@ void PostToNtfy() {
     } else if (httpResponseCode2 == 429) {
       timerDelay = 60000;
     }
-    // some issues with receiving json from a node
-    // cause post to fail constantly with -2 or -5 error
-    //if (httpResponseCode2 <= 0) {}
     http2.end();
   }
 }
