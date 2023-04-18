@@ -573,7 +573,6 @@ function fetchJson() {
     changeCss();
     resizeText();
     longPressB();
-    longPressS();
     if (event && dataT.length) { dataT2 = []; getTS(); }
 }
 
@@ -974,10 +973,11 @@ function topF() { document.body.scrollTop = 0; document.documentElement.scrollTo
 //function longPressN() { document.getElementById('mOpen').addEventListener('long-press', function (e) { window.location.href = nP; }); }
 function longPressS() {
     document.getElementById('closeBtn').addEventListener('long-press', function (e) {
-        makemeCookies("Snd=1", "Snd=0")
+        makemeCookies("Snd=1", "Snd=0");
     });
     document.getElementById('nOpen').addEventListener('long-press', function (e) {
-        makemeCookies("Sort=0", "Sort=1")
+        makemeCookies("Sort=0", "Sort=1");
+        getUrl("", "send2");
     });
 }
 function makemeCookies(x, y) {
