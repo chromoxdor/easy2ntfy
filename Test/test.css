@@ -469,6 +469,7 @@ input[type=number] {
     display: grid;
     justify-content: start;
     grid-template-columns: 25px auto;
+    align-items: end;
 }
 
 .numberUnit {

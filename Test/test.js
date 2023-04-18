@@ -54,12 +54,6 @@ var jsonAlarmIV;
 var tryconnectIV;
 var redSelection;
 var invisible = false;
-var switchLocal = true;
-var localJsonIV;
-var localJsonIp
-var isLocal = false;
-var receiveN;
-var local2remote;
 
 //------------------------------------channel & cookie handling------------------------------------------------------
 function addChan() {
@@ -133,8 +127,7 @@ function generateChan() {
         document.getElementById('channelList').innerHTML = "no channels added...";
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">Add a channel...\n(Click on the house symbol.)<pre>';
     };
-    console.log("longchanbtn");
-    longPressChanBtn();
+    longPressB();
 }
 function str_obj(str) {
     str = str.split('; ');
@@ -191,13 +184,9 @@ function enterOnInputs() {
         }
     });
 }
-//#################################### ntfy handling ####################################
+//----------------------------------ntfy handling--------------------------------------------------------------------
 
 async function fetchNtfy() {
-    //first run check if we can reach the local node stored in the default ip adress
-    if (switchLocal) {
-        testlocal("192.168.1.102", "Main");
-    }
     responseTime2 = Date.now();
     document.getElementById('unitInf').innerHTML = 'connecting...';
     if (document.cookie.includes("*selectedChannel") && document.cookie.includes("ntfy_")) {
@@ -222,7 +211,6 @@ async function fetchNtfy() {
         eventSource = new EventSource('https://' + ntfyChannel + '_json/sse');
         isSSE = true;
         eventSource.onmessage = (e) => {
-            console.log(e);
             if (e.data.includes(ntfyChannel.split("/")[0] + "/file")) { alert("The json-message has become too long \nntfy can only handle messages <= 4096byte") }
             dataNtfy = JSON.parse(e.data)
             if (dataNtfy) {
@@ -253,14 +241,11 @@ async function fetchNtfy() {
                         console.log(e);
                         document.getElementById('receiveNote').style.background = "red";
                     }
-                    if (switchLocal) {
-                        testlocal(myJson.WiFi['IP Address'], myJson.WiFi.Hostname);
-                    }
                 };
             } else {
                 console.log("no json data received");
             }
-            receiveN = setTimeout(receiveNote, 500);
+            setTimeout(receiveNote, 500);
         };
     }
     generateChan();
@@ -292,81 +277,8 @@ function receiveNote() {
     document.getElementById('receiveNote').style.opacity = 0;
     document.getElementById('receiveNote').style.background = "none"
 }
-//#################################### TEST IF WE ARE IN THE SAME NETWORK THAN THE NODES ####################################
 
-async function testlocal(localIP, localHost) {
-    switchLocal = false;
-    let controller3 = new AbortController();
-    setTimeout(() => controller3.abort(), 2000);
-    try {
-        response = await fetch('http://' + localIP + '/json', {
-            signal: controller3.signal
-        });
-        localJson = await response.json();
-        localJsonIp = localIP;
-        console.log(localHost, localJson.WiFi.Hostname);
-        if (localHost == localJson.WiFi.Hostname) {
-            clearTimeout(jsonAlarmIV);
-            console.log(isittime2)
-            if (isittime2) {
-                console.log('https://' + ntfyChannel + '?title=stop')
-                await fetch('https://' + ntfyChannel + '?title=stop', {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: {
-                        'Cache': 'no'
-                    }
-                });
-            }
-            isittime2 = 1;
-            clearTimeout(tryconnectIV);
-            clearTimeout(readyIV);
-            clearTimeout(localJsonIV);
-            getLocalJson();
-            localJsonIV = setInterval(getLocalJson, 2000);
-        }
-    } catch (e) {
-        switchLocal = true;
-        console.log("cannot reach local node")
-    }
-}
-//#################################### GET LOCAL JSON ####################################
-
-async function getLocalJson() {
-    document.getElementById('receiveNote').style.opacity = 1;
-    document.getElementById('home').innerHTML = "&#8962;&#xFE0E;"
-    console.log(localJsonIp);
-    console.log("geting json locally")
-    let controller2 = new AbortController();
-    setTimeout(() => controller2.abort(), 2000);
-    try {
-        response = await fetch('http://' + localJsonIp + '/json', {
-            signal: controller2.signal
-        });
-        myJson = await response.json();
-        isLocal = true;
-        clearTimeout(local2remote);
-        fetchJson()
-    } catch {
-        console.log("switching back to ntfy");
-        if (isittime2) {
-            clearTimeout(local2remote);
-            local2remote = setTimeout(ready4Remote, 10000)
-        }
-        return response;
-    }
-}
-function ready4Remote() { //back to getting json via ntfy
-    console.log("ready4remote")
-    switchLocal = true;
-    isLocal = false;
-    document.getElementById('home').innerHTML = ""
-    clearTimeout(localJsonIV);
-    clearTimeout(readyIV);
-    readyIV = setInterval(sendReady, 60000);
-    sendReady(2);
-}
-//#################################### PARSE JSON DATA ####################################
+//------------------------------------------------------------------------------------------------------
 
 function fetchJson() {
     urlParams = new URLSearchParams(window.location.search);
@@ -380,6 +292,7 @@ function fetchJson() {
         document.getElementById('allList').style.filter = "blur(0)";
     }
     html = '';
+    html1 = '';
     html2 = '';
     html3 = '';
     dataT = [];
@@ -477,14 +390,23 @@ function fetchJson() {
                         else { wasUsed = false; }
                     }
                     //dummy---------------------------------------------------------
-                    if (sensor.TaskDeviceNumber == 33 && !["noVal", "XX"].some(v => (iN).includes(v))) {
+                    if (sensor.TaskDeviceNumber == 33 && !(iN).includes("XX") && !(utton).includes("bigVal")) {
                         wasUsed = true;
                         //button coloring
                         if ((kindN === "C" && item.Value < 2) || item.Value === 1) { bS = "on"; }
                         else if (item.Value === 2) { bS = "alert"; }
                         else { bS = ""; }
+                        //handle tile hiding of dummy tiles
+                        if (["dButtons", "vInput", "pButtons"].some(v => (sensor.TaskName).includes(v)) && item.Name.includes("noVal")) {
+                            if (item.Name.includes("noValAuto")) {
+                                if (window.innerWidth >= 450) {
+                                    html += '<div class="sensorset btnTile"></div>';
+                                }
+                            }
+                            else { html += '<div class="sensorset btnTile"></div>'; }
+                        }
                         //virtual buttons
-                        if ((utton).includes("dButtons")) {
+                        else if ((utton).includes("dButtons")) {
                             if (item.Value > -1) {
                                 itemNB = itemN.split("&")[0];
                                 if (itemN.split("&")[1] == "A") { html += '<div class="btnTile ' + bS + htS1 + 'getNodes(\'' + itemNB + '\')"><div  class="sensors nodes" style="font-weight:bold;">' + itemNB + '</div></div>'; }
@@ -552,18 +474,11 @@ function fetchJson() {
                                 default:
                             }
                         }
-                        //handle hiding of dummy tiles
-                        else if (iN.includes("noValAuto")) {
-                            if (window.innerWidth >= 450) {
-                                html += '<div class="sensorset"><div></div><div</div></div>';
-                            }
-                        }
-                        else if (iN.includes("noVal")) { html += '<div class="sensorset"><div></div><div</div></div>'; }
-
                         else { wasUsed = false; }
                     }
                     //big values---------------------------------------------------------
                     if ((utton).includes("bigVal")) {
+                        wasUsed = true;
                         let htmlBig1 = `<div class="valuesBig" style="font-weight:bold;text-align:left;">`;
                         if (firstItem == true) {
                             html3 += '<div class="bigNum">';
@@ -597,27 +512,34 @@ function fetchJson() {
                                 else { html3 += htmlBig1 + itemN + '</div><div class="valueBig">' + num2Value + '<span style="background:none;padding-right: 1%;">' + kindN + '</span></div></div>'; }
                             }
                         }
-                        wasUsed = true;
                     }
                     // if all items with a specific delaration are processed do the rest---------------------------------------------------------
                     if (!wasUsed) {
-                        if (firstItem == true) { html += '<div class="' + htS1 + 'buttonClick(\'' + utton + '\')">' + htS2; }
-                        if (isTspeak) { html += '<div class="values thingspeak"><div>' + itemN + '</div><div id="' + itemN + 'TS">' + itemTSName + kindN + '</div></div>'; }
-                        else if (iN.includes("noVal")) { html += '<div class="values therest"><div>&nbsp;</div><div></div></div>'; }
-                        else if (sensor.TaskDeviceNumber == 81) { html += '<div class="cron"><div>' + itemN + '</div><div style="font-size: 10pt;">' + item.Value + '</div></div>'; }
-                        else { html += '<div class="values therest"><div>' + itemN + '</div><div>' + num2Value + kindN + '</div></div>'; }
+                        if (firstItem == true) { html1 += '<div class="' + htS1 + 'buttonClick(\'' + utton + '\')">' + htS2; }
+                        if (isTspeak) { html1 += '<div class="values thingspeak"><div>' + itemN + '</div><div id="' + itemN + 'TS">' + itemTSName + kindN + '</div></div>'; }
+                        //else if (iN.includes("noVal")) { html += '<div class="values therest"><div>&nbsp;</div><div></div></div>'; }
+                        else if (sensor.TaskDeviceNumber == 81) { html1 += '<div class="cron"><div>' + itemN + '</div><div style="font-size: 10pt;">' + item.Value + '</div></div>'; }
+                        else { html1 += '<div class="values therest"><div>' + itemN + '</div><div>' + num2Value + kindN + '</div></div>'; }
                     }
                     firstItem = false;
+
                 });
                 html += '</div>';
+                html1 += '</div>';
                 html3 += '</div>';
+                if (!cooK.includes("Sort=1")) {
+                    html += html1;
+                    html1 = '';
+                }
             }
-            else if (taskEnabled === "true" && !utton.includes("XX") && exC && exC2 && !hasParams) { html += '<div  class="sensorset clickables" onclick="buttonClick(\'' + utton + '\')"><div class="sensors" style="font-weight:bold;">' + utton + '</div><div></div><div></div></div>'; someoneEn = 1; document.getElementById('sensorList').innerHTML = html; }
+            else if (taskEnabled === "true" && !utton.includes("XX") && exC && exC2 && !hasParams) { html1 += '<div  class="sensorset clickables" onclick="buttonClick(\'' + utton + '\')"><div class="sensors" style="font-weight:bold;">' + utton + '</div><div></div><div></div></div>'; someoneEn = 1; document.getElementById('sensorList').innerHTML = html; }
+
         });
         if (!someoneEn && !hasParams) {
             html += '<div class="sensorset clickables" onclick="splitOn(); topF()"> <div class="sensors" style="font-weight:bold;">no tasks enabled or visible...</div>';
         }
     }
+    html += html1;
 
     document.getElementById('sysInfo').innerHTML = syshtml;
     document.getElementById('sensorList').innerHTML = html;
@@ -891,7 +813,7 @@ function pushClick(utton, b) {
     }
     else {
         if (unitNr === unitNr1) { getUrl(evnT + utton + 'Event=' + b); }
-        else { getUrl(sndTo + nNr + ',"event,' + utton + 'Event=,' + b + '"'); }
+        else { getUrl(sndTo + nNr + ',"event,' + utton + 'Event=' + b + '"'); }
     }
 }
 
@@ -956,7 +878,6 @@ function openSys() {
 function getNodes(utton, allNodes, hasIt) {
     let html4 = '';
     nInf = myJson.nodes;
-    console.log(nInf);
     let i = -1;
     myJson.nodes.forEach(node => {
         i++
@@ -995,7 +916,7 @@ function nodeChange(event) {
         console.log(nInf.ip);
         /*nP = `http://${nInf.ip}/tools`;
         nP2 = `http://${nInf.ip}/devices`;*/
-        localJsonIp = nInf.ip;
+        jsonPath = window[nInf.ip];
         console.log(unitNrdefault, nNr);
         if (unitNrdefault == nNr) {
             console.log("replace");
@@ -1007,12 +928,7 @@ function nodeChange(event) {
         }
         //setTimeout(fetchJson, 1000);
         //setTimeout(getNodes, 500);
-        if (isLocal) {
-            getLocalJson();
-            clearTimeout(localJsonIV);
-            localJsonIV = setInterval(getLocalJson, 2000);
-        }
-        else { getUrl(nInf.ip, "change_node") }
+        getUrl(nInf.ip, "change_node")
     }
     if (window.innerWidth < 450 && document.getElementById('sysInfo').offsetHeight === 0) { closeNav(); }
 }
@@ -1058,13 +974,22 @@ function topF() { document.body.scrollTop = 0; document.documentElement.scrollTo
 //function longPressN() { document.getElementById('mOpen').addEventListener('long-press', function (e) { window.location.href = nP; }); }
 function longPressS() {
     document.getElementById('closeBtn').addEventListener('long-press', function (e) {
-        if (cooK.includes("Snd=1")) { playSound(500); document.cookie = "Snd=0; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;" }
-        else { playSound(900); document.cookie = "Snd=1; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;" }
-        cooK = document.cookie;
+        makemeCookies("Snd=1", "Snd=0")
+    });
+    document.getElementById('nOpen').addEventListener('long-press', function (e) {
+        makemeCookies("Sort=0", "Sort=1")
     });
 }
-function longPressChanBtn() {
-    const longButtonChans = document.querySelectorAll(".buttonUnit");
+function makemeCookies(x, y) {
+    if (cooK.includes(x)) {playSound(500); document.cookie = y + "; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;" }
+    else if (cooK.includes(y)) {playSound(900); document.cookie = x + "; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;" }
+    else {playSound(500); document.cookie = y + "; expires=Fri, 31 Dec 9999 23:59:59 GMT; path=/;" }
+    cooK = document.cookie;
+}
+function longPressB() {
+    var executed = false;
+    const longButtons = document.querySelectorAll(".clickables");
+    const longButtonChans = document.querySelectorAll(".channelItem");
     longButtonChans.forEach(longButtonChan => {
         longButtonChan.addEventListener('long-press', function (e) {
             getUrl("", "kill");
@@ -1072,11 +997,6 @@ function longPressChanBtn() {
             isittime = 0;
         });
     });
-}
-
-function longPressB() {
-    var executed = false;
-    const longButtons = document.querySelectorAll(".clickables");
     longButtons.forEach(longButton => {
         longButton.addEventListener('long-press', function (e) {
             const lBName = longButton.querySelector(".sensors");
@@ -1131,24 +1051,15 @@ function playSound(freQ) {
 //timeout fetch requests
 async function getUrl(url, title) {
     if (Date.now() - responseTime > 10000) {
-        console.log(ntfyChannel,title)
         if (!title) title = "command"
         let controller = new AbortController();
-        if (!isLocal || title == "kill") {
-            setTimeout(() => controller.abort(), 5000);
-            theChannel = 'https://' + ntfyChannel + '?title=' + title + '&message='
-        }
-        else {
-            setTimeout(() => controller.abort(), 1000);
-            theChannel = 'http://' + localJsonIp + '/'
-        }
-
+        setTimeout(() => controller.abort(), 5000);
         try {
-            console.log(theChannel + url)
-            response = await fetch(theChannel + url, {
+            console.log('https://' + ntfyChannel + '?title=' + title + '&message=' + url)
+            response = await fetch('https://' + ntfyChannel + '?title=' + title + '&message=' + url, {
                 signal: controller.signal,
                 method: 'POST',
-                mode: 'cors',
+                //mode:'no-cors',
                 headers: {
                     'Cache': 'no'
                 }
@@ -1170,16 +1081,15 @@ async function getUrl(url, title) {
             }
         } catch (error) {
             console.error(error);
-            if (!isLocal) {
-                clearHtml();
-                document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you enter the correct server?\nIs your Server online and reachable?\nTry to reload this page<pre>';
-            }
+            clearHtml();
+            document.getElementById('sensorList').innerHTML = '<pre class="noChan">Connection error!\nDid you enter the correct server?\nIs your Server online and reachable?\nTry to reload this page<pre>';
         }
         //return response;
     }
 }
 
 function connectionIssues() {
+    sendReady(1);
     if (Date.now() - responseTime2 > 80000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<img src="https://legendofmi.com/images/animatedgifs/threeheaded.gif" style="box-shadow: none; image-rendering: pixelated" width="80" height="80" alt="Three-headed Monkey">';
@@ -1224,21 +1134,16 @@ document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         console.log("visible");
         invisible = false;
-        if (isittime2 && switchLocal) {
+        if (isittime2) {
             clearTimeout(readyIV);
             readyIV = setInterval(sendReady, 60000);
             sendReady(2);
-        } else if (!switchLocal) {
-            clearTimeout(localJsonIV);
-            getLocalJson();
-            localJsonIV = setInterval(getLocalJson, 2000);
         }
     } else {
         console.log("invisible");
         invisible = true;
         clearTimeout(jsonAlarmIV);
-        if (isittime2 && switchLocal) { getUrl("", "stop"); }
-        else if (!switchLocal) { clearTimeout(localJsonIV); }
+        if (isittime2) { getUrl("", "stop"); }
     }
 });
 
