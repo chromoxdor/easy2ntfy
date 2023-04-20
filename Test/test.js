@@ -574,13 +574,17 @@ function fetchJson() {
     resizeText();
     longPressB();
 
-    //2-row switching----------
+    //2-row switching and invert color scheme----------
     mW = 450;
     mW2 = 9999;
-    if (cooK.includes("Two=1")) { mW = mW2; mW2 = 450 }
+    if (cooK.includes("Two=1")) {mW = mW2; mW2 = 450 }
     for (Array of document.styleSheets) {
-        for (Array of Array.cssRules) {
-            if (Array.conditionText == "screen and (max-width: " + mW2 + "px)") { Array.media.mediaText = "screen and (max-width: " + mW + "px)" };
+        for (e of Array.cssRules) {
+            if (e.conditionText == "screen and (max-width: " + mW2 + "px)") { e.media.mediaText = "screen and (max-width: " + mW + "px)" };
+            if (e.conditionText?.includes("prefers-color-scheme")) {
+                if (cooK.includes("Col=1")){e.media.mediaText = "(prefers-color-scheme: light)" }
+                else {e.media.mediaText = "(prefers-color-scheme: dark)" }
+                };
         }
     }
     //-----------------------
@@ -991,6 +995,10 @@ function longPressS() {
     document.getElementById('openSys').addEventListener('long-press', function (e) {
         e.preventDefault();
         mC("Two=0", "Two=1")
+    });
+    document.getElementById('unitId').addEventListener('long-press', function (e) {
+        e.preventDefault();
+        mC("Col=0", "Col=1")
     });
 }
 function mC(x, y) {
