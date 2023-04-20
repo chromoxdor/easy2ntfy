@@ -1007,6 +1007,7 @@ function mC(x, y) {
     else if (cooK.includes(y)) { playSound(900); document.cookie = x + z }
     else { playSound(500); document.cookie = y + z }
     cooK = document.cookie;
+    getUrl("", "send2");
 }
 function longPressB() {
     var executed = false;
