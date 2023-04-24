@@ -1060,9 +1060,9 @@ function minutesToDhm(minutes) {
     return dDisplay + hDisplay + mDisplay;
 }
 
+var c = new AudioContext()
 function playSound(freQ) {
     if ((cooK.includes("Snd=1") || freQ < 1000) && (isittime || freQ != 3000)) {
-        c = new AudioContext()
         o = c.createOscillator()
         g = c.createGain()
         frequency = freQ
