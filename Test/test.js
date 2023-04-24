@@ -260,6 +260,14 @@ async function fetchNtfy() {
                     ntfyJson = dataNtfy.message;
                     try {
                         myJson = JSON.parse(ntfyJson);
+                        if (initalRun) {
+                            fWiFi = myJson.WiFi['IP Address']
+                            fHost = myJson.WiFi.Hostname
+                            initalRun = false;
+                        }
+                        if (switchLocal) {
+                            testlocal(fWiFi, fHost);
+                        }
                         fetchJson()
                         responseTime2 = Date.now();
                         console.log("received valid json data...");
@@ -268,14 +276,6 @@ async function fetchNtfy() {
                     } catch (e) {
                         console.log(e);
                         document.getElementById('receiveNote').style.background = "red";
-                    }
-                    if (initalRun) {
-                        fWiFi = myJson.WiFi['IP Address']
-                        fHost = myJson.WiFi.Hostname
-                        initalRun = false;
-                    }
-                    if (switchLocal) {
-                        testlocal(fWiFi, fHost);
                     }
                 };
             } else {
