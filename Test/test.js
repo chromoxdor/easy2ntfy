@@ -328,14 +328,14 @@ function testlocal(ip, hostN) {
         this.img.onload = function () {
             _that.inUse = false;
             console.log('responded');
-            window.open("http://" + ip, "_self")
+            //window.open("http://" + ip, "_self")
 
         };
         this.img.onerror = function (e) {
             if (_that.inUse) {
                 _that.inUse = false;
-                console.log('responded2');
-                window.open("http://" + ip, "_self")
+                console.log('responded2', e);
+                //window.open("http://" + ip, "_self")
             }
 
         };
