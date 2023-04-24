@@ -268,7 +268,7 @@ async function fetchNtfy() {
                         if (switchLocal) {
                             testlocal(fWiFi, fHost);
                         }
-                        fetchJson()
+                        else fetchJson()
                         responseTime2 = Date.now();
                         console.log("received valid json data...");
                         clearTimeout(jsonAlarmIV);
@@ -315,38 +315,21 @@ function receiveNote() {
 }
 
 //#################################### TEST IF WE ARE IN THE SAME NETWORK THAN THE NODES ####################################
-
-function testlocal(ip, hostN) {
-
-    if (!this.inUse) {
-        this.status = 'unchecked';
-        this.inUse = true;
-        //this.callback = callback;
-        this.ip = ip;
-        var _that = this;
-        this.img = new Image();
-        this.img.onload = function () {
-            _that.inUse = false;
-            console.log('responded');
-            //window.open("http://" + ip, "_self")
-
-        };
-        this.img.onerror = function (e) {
-            if (_that.inUse) {
-                _that.inUse = false;
-                console.log('responded2', e);
-                //window.open("http://" + ip, "_self")
-            }
-
-        };
-        this.start = new Date().getTime();
-        this.img.src = "http://" + ip;
-        this.timer = setTimeout(function () {
-            if (_that.inUse) {
-                _that.inUse = false;
-                console.log('timeout');
-            }
-        }, 1500);
+//the worst and only way right now to somehow detect if we are in the same network
+// is to determine whenever a request through fetch is refused or timed out.
+//therefore the request points to an server without https capabilities (espeasy) and gets refused 
+async function testlocal(URL, hostN) {
+    let controller = new AbortController();
+    setTimeout(() => controller.abort(), 500);
+    try {
+        response = await fetch('https://'+URL, {
+            signal: controller.signal,
+        });
+        console.log(response.status)
+    } catch (error) {
+        console.error(error.toString());
+        if (!error.toString().includes("user aborted")) { window.open("http://" + URL, "_self") }
+        else { fetchJson() }
     }
 }
 //#################################### PARSE JSON DATA ####################################

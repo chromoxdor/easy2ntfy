@@ -624,9 +624,14 @@ button.remove {
     width: 45%;
     bottom: 70px;
     position: absolute;
+    align-items: center;
 }
 #checkLocal label {
     padding-left: 13px;
+}
+#checkLocal input {
+    height: 25px;
+    width: 25px;
 }
 
 #closeBtn2 {
