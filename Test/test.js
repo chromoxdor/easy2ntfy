@@ -171,7 +171,7 @@ function delChan(name, value) {
 function checkChange() {
     var decider = document.getElementById('localCheck');
     console.log(decider.checked)
-    if(decider.checked){
+    if (decider.checked) {
         switchLocal = true;
         console.log(document.cookie)
         document.cookie = "localCheck=1; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
@@ -181,13 +181,13 @@ function checkChange() {
     }
 }
 function check() {
-    if (cooK.includes("localCheck=1")){
-    switchLocal = true;
-    document.getElementById("localCheck").checked = true;
+    if (cooK.includes("localCheck=1")) {
+        switchLocal = true;
+        document.getElementById("localCheck").checked = true;
     }
     else {
         switchLocal = false;
-    document.getElementById("localCheck").checked = false;
+        document.getElementById("localCheck").checked = false;
     }
 }
 
@@ -316,21 +316,37 @@ function receiveNote() {
 
 //#################################### TEST IF WE ARE IN THE SAME NETWORK THAN THE NODES ####################################
 
-async function testlocal(localIP, localHost) {
-    let controller3 = new AbortController();
-    setTimeout(() => controller3.abort(), 2000);
-    try {
-        response = await fetch('http://' + localIP + '/json', {
-            signal: controller3.signal
-        });
-        localJson = await response.json();
-        localJsonIp = localIP;
-        if (localHost == localJson.WiFi.Hostname) {
-                window.open("http://" + localIP, "_self")
+function testlocal(ip, hostN) {
 
-        }
-    } catch (e) {
-        console.log("cannot reach local node")
+    if (!this.inUse) {
+        this.status = 'unchecked';
+        this.inUse = true;
+        //this.callback = callback;
+        this.ip = ip;
+        var _that = this;
+        this.img = new Image();
+        this.img.onload = function () {
+            _that.inUse = false;
+            console.log('responded');
+            window.open("http://" + ip, "_self")
+
+        };
+        this.img.onerror = function (e) {
+            if (_that.inUse) {
+                _that.inUse = false;
+                console.log('responded');
+                window.open("http://" + ip, "_self")
+            }
+
+        };
+        this.start = new Date().getTime();
+        this.img.src = "http://" + ip;
+        this.timer = setTimeout(function () {
+            if (_that.inUse) {
+                _that.inUse = false;
+                console.log('timeout');
+            }
+        }, 1500);
     }
 }
 //#################################### PARSE JSON DATA ####################################
