@@ -54,8 +54,10 @@ var jsonAlarmIV;
 var tryconnectIV;
 var redSelection;
 var invisible = false;
+var switchLocal = true;
+var initalRun = true;
 
-//------------------------------------channel & cookie handling------------------------------------------------------
+//#################################### channel & cookie handling ####################################
 function addChan() {
     if (document.getElementById('inputChannel').offsetHeight === 0) {
         document.getElementById("inputChannel").style.height = "160px";
@@ -165,6 +167,31 @@ function delChan(name, value) {
     }
     generateChan()
 }
+
+function checkChange() {
+    var decider = document.getElementById('localCheck');
+    console.log(decider.checked)
+    if(decider.checked){
+        switchLocal = true;
+        console.log(document.cookie)
+        document.cookie = "localCheck=1; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
+    } else {
+        switchLocal = false;
+        document.cookie = "localCheck=0; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
+    }
+}
+function check() {
+    if (cooK.includes("localCheck=1")){
+    switchLocal = true;
+    document.getElementById("localCheck").checked = true;
+    }
+    else {
+        switchLocal = false;
+    document.getElementById("localCheck").checked = false;
+    }
+}
+
+
 function get_cookie(name) {
     return document.cookie.split(';').some(c => {
         return c.trim().startsWith(name + '=');
@@ -184,9 +211,10 @@ function enterOnInputs() {
         }
     });
 }
-//----------------------------------ntfy handling--------------------------------------------------------------------
+//#################################### ntfy handling ####################################
 
 async function fetchNtfy() {
+    check();
     responseTime2 = Date.now();
     document.getElementById('unitInf').innerHTML = 'connecting...';
     if (document.cookie.includes("*selectedChannel") && document.cookie.includes("ntfy_")) {
@@ -241,6 +269,14 @@ async function fetchNtfy() {
                         console.log(e);
                         document.getElementById('receiveNote').style.background = "red";
                     }
+                    if (initalRun) {
+                        fWiFi = myJson.WiFi['IP Address']
+                        fHost = myJson.WiFi.Hostname
+                        initalRun = false;
+                    }
+                    if (switchLocal) {
+                        testlocal(fWiFi, fHost);
+                    }
                 };
             } else {
                 console.log("no json data received");
@@ -278,25 +314,42 @@ function receiveNote() {
     document.getElementById('receiveNote').style.background = "none"
 }
 
-//------------------------------------------------------------------------------------------------------
+//#################################### TEST IF WE ARE IN THE SAME NETWORK THAN THE NODES ####################################
+
+async function testlocal(localIP, localHost) {
+    let controller3 = new AbortController();
+    setTimeout(() => controller3.abort(), 2000);
+    try {
+        response = await fetch('http://' + localIP + '/json', {
+            signal: controller3.signal
+        });
+        localJson = await response.json();
+        localJsonIp = localIP;
+        if (localHost == localJson.WiFi.Hostname) {
+                window.open("http://" + localIP, "_self")
+
+        }
+    } catch (e) {
+        console.log("cannot reach local node")
+    }
+}
+//#################################### PARSE JSON DATA ####################################
 
 function fetchJson() {
-
     //2-row switching and invert color scheme----------
     mW = 450;
     mW2 = 9999;
-    if (cooK.includes("Two=1")) {mW = mW2; mW2 = 450 }
+    if (cooK.includes("Two=1")) { mW = mW2; mW2 = 450 }
     for (Array of document.styleSheets) {
         for (e of Array.cssRules) {
             if (e.conditionText == "screen and (max-width: " + mW2 + "px)") { e.media.mediaText = "screen and (max-width: " + mW + "px)" };
             if (e.conditionText?.includes("prefers-color-scheme")) {
-                if (cooK.includes("Col=1")){e.media.mediaText = "(prefers-color-scheme: light)" }
-                else {e.media.mediaText = "(prefers-color-scheme: dark)" }
-                };
+                if (cooK.includes("Col=1")) { e.media.mediaText = "(prefers-color-scheme: light)" }
+                else { e.media.mediaText = "(prefers-color-scheme: dark)" }
+            };
         }
     }
     //-----------------------
-    
     urlParams = new URLSearchParams(window.location.search);
     myParam = urlParams.get('unit');
     if (myParam == null) { hasParams = 0; }
@@ -614,7 +667,7 @@ function changeCss() {
     var nBig = document.getElementsByClassName('valuesBig').length;
     var sList = document.getElementById("sensorList");
     var numSet = sList.getElementsByClassName('sensorset').length;
-    z=0;
+    z = 0;
     if (!nBig) z = numSet; //if there are no big values orient on number of "normal" tiles
     if (bigLength === 4 || z > 9) {
         y = x + x + x + x;
@@ -800,22 +853,22 @@ function sliderChange(event) {
 }
 
 function buttonClick(utton, gState) {
-        if (utton.split("&")[1]) {
-            utton2 = utton.split("&")[0];
-            nNr2 = utton.split("&")[1];
-            getUrl(sndTo + nNr2 + ',"event,' + utton2 + 'Event"');
-        }
-        else if (utton.split("?")[1]) {
-            gpioNr = utton.split("?")[1];
-            gS = gState == 1 ? 0 : 1
-            if (unitNr === unitNr1) { getUrl('control?cmd=gpio,' + gpioNr + ',' + gS); }
-            else { getUrl(sndTo + nNr + ',"gpio,' + gpioNr + ',' + gS + '"'); }
-        }
-        else {
-            if (unitNr === unitNr1) { getUrl(evnT + utton + 'Event'); }
-            else { getUrl(sndTo + nNr + ',"event,' + utton + 'Event"'); }
-        }
+    if (utton.split("&")[1]) {
+        utton2 = utton.split("&")[0];
+        nNr2 = utton.split("&")[1];
+        getUrl(sndTo + nNr2 + ',"event,' + utton2 + 'Event"');
     }
+    else if (utton.split("?")[1]) {
+        gpioNr = utton.split("?")[1];
+        gS = gState == 1 ? 0 : 1
+        if (unitNr === unitNr1) { getUrl('control?cmd=gpio,' + gpioNr + ',' + gS); }
+        else { getUrl(sndTo + nNr + ',"gpio,' + gpioNr + ',' + gS + '"'); }
+    }
+    else {
+        if (unitNr === unitNr1) { getUrl(evnT + utton + 'Event'); }
+        else { getUrl(sndTo + nNr + ',"event,' + utton + 'Event"'); }
+    }
+}
 
 function pushClick(utton, b) {
     if (b == 0) { isittime = 1; playSound(1000); }
@@ -1178,4 +1231,4 @@ document.addEventListener("visibilitychange", () => {
 
 
 
-!function(e,t){"use strict";var n=null,a="PointerEvent"in e||e.navigator&&"msPointerEnabled"in e.navigator,i="ontouchstart"in e||navigator.MaxTouchPoints>0||navigator.msMaxTouchPoints>0,o=a?"pointerdown":i?"touchstart":"mousedown",r=a?"pointerup":i?"touchend":"mouseup",m=a?"pointermove":i?"touchmove":"mousemove",u=a?"pointerleave":i?"touchleave":"mouseleave",s=0,c=0,l=10,v=10;function f(e){p(),e=function(e){if(void 0!==e.changedTouches)return e.changedTouches[0];return e}(e),this.dispatchEvent(new CustomEvent("long-press",{bubbles:!0,cancelable:!0,detail:{clientX:e.clientX,clientY:e.clientY,offsetX:e.offsetX,offsetY:e.offsetY,pageX:e.pageX,pageY:e.pageY},clientX:e.clientX,clientY:e.clientY,offsetX:e.offsetX,offsetY:e.offsetY,pageX:e.pageX,pageY:e.pageY,screenX:e.screenX,screenY:e.screenY}))||t.addEventListener("click",function e(n){t.removeEventListener("click",e,!0),function(e){e.stopImmediatePropagation(),e.preventDefault(),e.stopPropagation()}(n)},!0)}function d(a){p(a);var i=a.target,o=parseInt(function(e,n,a){for(;e&&e!==t.documentElement;){var i=e.getAttribute(n);if(i)return i;e=e.parentNode}return a}(i,"data-long-press-delay","600"),10);n=function(t,n){if(!(e.requestAnimationFrame||e.webkitRequestAnimationFrame||e.mozRequestAnimationFrame&&e.mozCancelRequestAnimationFrame||e.oRequestAnimationFrame||e.msRequestAnimationFrame))return e.setTimeout(t,n);var a=(new Date).getTime(),i={},o=function(){(new Date).getTime()-a>=n?t.call():i.value=requestAnimFrame(o)};return i.value=requestAnimFrame(o),i}(f.bind(i,a),o)}function p(t){var a;(a=n)&&(e.cancelAnimationFrame?e.cancelAnimationFrame(a.value):e.webkitCancelAnimationFrame?e.webkitCancelAnimationFrame(a.value):e.webkitCancelRequestAnimationFrame?e.webkitCancelRequestAnimationFrame(a.value):e.mozCancelRequestAnimationFrame?e.mozCancelRequestAnimationFrame(a.value):e.oCancelRequestAnimationFrame?e.oCancelRequestAnimationFrame(a.value):e.msCancelRequestAnimationFrame?e.msCancelRequestAnimationFrame(a.value):clearTimeout(a)),n=null}"function"!=typeof e.CustomEvent&&(e.CustomEvent=function(e,n){n=n||{bubbles:!1,cancelable:!1,detail:void 0};var a=t.createEvent("CustomEvent");return a.initCustomEvent(e,n.bubbles,n.cancelable,n.detail),a},e.CustomEvent.prototype=e.Event.prototype),e.requestAnimFrame=e.requestAnimationFrame||e.webkitRequestAnimationFrame||e.mozRequestAnimationFrame||e.oRequestAnimationFrame||e.msRequestAnimationFrame||function(t){e.setTimeout(t,1e3/60)},t.addEventListener(r,p,!0),t.addEventListener(u,p,!0),t.addEventListener(m,function(e){var t=Math.abs(s-e.clientX),n=Math.abs(c-e.clientY);(t>=l||n>=v)&&p()},!0),t.addEventListener("wheel",p,!0),t.addEventListener("scroll",p,!0),t.addEventListener(o,function(e){s=e.clientX,c=e.clientY,d(e)},!0)}(window,document);
+!function (e, t) { "use strict"; var n = null, a = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator, i = "ontouchstart" in e || navigator.MaxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, o = a ? "pointerdown" : i ? "touchstart" : "mousedown", r = a ? "pointerup" : i ? "touchend" : "mouseup", m = a ? "pointermove" : i ? "touchmove" : "mousemove", u = a ? "pointerleave" : i ? "touchleave" : "mouseleave", s = 0, c = 0, l = 10, v = 10; function f(e) { p(), e = function (e) { if (void 0 !== e.changedTouches) return e.changedTouches[0]; return e }(e), this.dispatchEvent(new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: { clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY }, clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY, screenX: e.screenX, screenY: e.screenY })) || t.addEventListener("click", function e(n) { t.removeEventListener("click", e, !0), function (e) { e.stopImmediatePropagation(), e.preventDefault(), e.stopPropagation() }(n) }, !0) } function d(a) { p(a); var i = a.target, o = parseInt(function (e, n, a) { for (; e && e !== t.documentElement;) { var i = e.getAttribute(n); if (i) return i; e = e.parentNode } return a }(i, "data-long-press-delay", "600"), 10); n = function (t, n) { if (!(e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame && e.mozCancelRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame)) return e.setTimeout(t, n); var a = (new Date).getTime(), i = {}, o = function () { (new Date).getTime() - a >= n ? t.call() : i.value = requestAnimFrame(o) }; return i.value = requestAnimFrame(o), i }(f.bind(i, a), o) } function p(t) { var a; (a = n) && (e.cancelAnimationFrame ? e.cancelAnimationFrame(a.value) : e.webkitCancelAnimationFrame ? e.webkitCancelAnimationFrame(a.value) : e.webkitCancelRequestAnimationFrame ? e.webkitCancelRequestAnimationFrame(a.value) : e.mozCancelRequestAnimationFrame ? e.mozCancelRequestAnimationFrame(a.value) : e.oCancelRequestAnimationFrame ? e.oCancelRequestAnimationFrame(a.value) : e.msCancelRequestAnimationFrame ? e.msCancelRequestAnimationFrame(a.value) : clearTimeout(a)), n = null } "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, n) { n = n || { bubbles: !1, cancelable: !1, detail: void 0 }; var a = t.createEvent("CustomEvent"); return a.initCustomEvent(e, n.bubbles, n.cancelable, n.detail), a }, e.CustomEvent.prototype = e.Event.prototype), e.requestAnimFrame = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (t) { e.setTimeout(t, 1e3 / 60) }, t.addEventListener(r, p, !0), t.addEventListener(u, p, !0), t.addEventListener(m, function (e) { var t = Math.abs(s - e.clientX), n = Math.abs(c - e.clientY); (t >= l || n >= v) && p() }, !0), t.addEventListener("wheel", p, !0), t.addEventListener("scroll", p, !0), t.addEventListener(o, function (e) { s = e.clientX, c = e.clientY, d(e) }, !0) }(window, document);

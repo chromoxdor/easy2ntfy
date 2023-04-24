@@ -619,6 +619,16 @@ button.remove {
     color: #adadad;
 }
 
+#checkLocal {
+    display: flex;
+    width: 45%;
+    bottom: 70px;
+    position: absolute;
+}
+#checkLocal label {
+    padding-left: 13px;
+}
+
 #closeBtn2 {
     left:20px;
 }
