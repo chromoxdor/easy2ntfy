@@ -659,29 +659,31 @@ async function getTS() {
 
 function changeCss() {
     x = "auto ";
+    m = null;
     var numSl = document.querySelectorAll('input[type=range]').length;
     if (!numSl) { document.getElementById("allList").classList.add('allExtra'); }
     else { document.getElementById("allList").classList.remove('allExtra'); }
     var list3 = document.querySelectorAll(".bigNum");
-    var nBig = document.getElementsByClassName('valuesBig').length;
     var sList = document.getElementById("sensorList");
     var numSet = sList.getElementsByClassName('sensorset').length;
     z = 0;
-    if (!nBig) z = numSet; //if there are no big values orient on number of "normal" tiles
-    if (bigLength === 4 || z > 9) {
+    if (!list3.length) z = numSet; //if there are no big values orient on number of "normal" tiles
+    if (bigLength == 4 || z > 9) {
         y = x + x + x + x;
         coloumnSet = 4;
     }
-    else if (bigLength === 3 || z > 4) {
+    else if (bigLength == 3 || z > 4) {
         y = x + x + x;
         coloumnSet = 3;
     }
-    else if (bigLength === 2 || z > 1) {
+    else if (bigLength == 2 || z > 1) {
         y = x + x;
         coloumnSet = 2;
     }
-    else if (bigLength === 1 || z < 2) {
+    else if (bigLength == 1 || z < 2) {
+
         y = x;
+        m = "important"
         if (list3.length) { for (var i = 0; i < list3.length; ++i) { list3[i].classList.add('bigNumOne'); } }
         coloumnSet = 1;
     }
@@ -689,14 +691,24 @@ function changeCss() {
         y = x + x;
         coloumnSet = 2;
     }
-    sList.style.gridTemplateColumns = y;
 
     if (bigLength > 1) {
         if (list3.length) { for (var i = 0; i < list3.length; ++i) { list3[i].classList.remove('bigNumOne'); } }
     }
+
+    if (window.innerWidth < 450 || cooK.includes("Two=1")) {
+        if ((bigLength == 1 && list3.length == 1) || (bigLength == 0 && numSet == 1)) {
+            coloumnSet = 1
+            y = x;
+            m = "important"
+        }
+        else { coloumnSet = 2}
+    };
+    sList.style.setProperty('grid-template-columns', y, m);
+
     //calculate and add extra tiles
-    if (window.innerWidth < 450 || cooK.includes("Two=1")) { if (bigLength === 1 && !numBigger || bigLength === 0 && numSet === 1) { coloumnSet = 1 } else { coloumnSet = 2 } };
-    if (numSet % coloumnSet != 0) {
+    document.getElementById("sensorList").style.gridTemplateColumns = "auto !important;";
+    if (numSet % coloumnSet != 0 && coloumnSet != 1) {
         calcTile = coloumnSet - (numSet - coloumnSet * Math.floor(numSet / coloumnSet));
         for (let i = 1; i <= calcTile; i++) {
             html += '<div class="sensorset"></div>'
