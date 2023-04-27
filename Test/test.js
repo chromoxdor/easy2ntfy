@@ -328,7 +328,7 @@ async function testlocal(URL, hostN) {
         console.log(response.status)
     } catch (error) {
         console.error(error.toString());
-        if (!error.toString().includes("user aborted")) { window.open("http://" + URL, "_self") }
+        if (!error.toString().includes("aborted")) { window.open("http://" + URL, "_self") }
         else { fetchJson() }
     }
 }
