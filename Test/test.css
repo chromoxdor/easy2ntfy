@@ -78,16 +78,14 @@ body {
 
 #bigNumber {
     display: grid;
-    grid-column-gap: 1vh;
-    grid-row-gap: 1vh;
+    gap: 1vh;
     transition: 0.8s ease-out;
 }
 
 .bigNum {
     display: flex;
     grid-template-columns: auto auto auto auto;
-    grid-row-gap: 1vh;
-    grid-column-gap: 1vh;
+    gap: 1vh;
     width: -webkit-fill-available;
     justify-content: start;
     transition: 0.8s ease-out;
@@ -121,16 +119,14 @@ body {
 
 #sensorList {
     display: grid;
-    grid-column-gap: 1vh;
-    grid-row-gap: 1vh;
+    gap: 1vh;
     justify-content: center;
     transition: 0.8s ease-out;
 }
 
 #sliderList {
     display: grid;
-    grid-column-gap: 1vh;
-    grid-row-gap: 1vh;
+    gap: 1vh;
     min-width: 288px;
     transition: 0.8s ease-out;
 }
@@ -139,10 +135,6 @@ body {
     width: inherit;
     height: 40px;
     background: #837c7c;
-}
-
-#sensorList .sensorset {
-    min-height: 60px;
 }
 
 .clickables:active,
@@ -165,6 +157,7 @@ button:active {
     background: #847d7d;
     width: calc(100% + 44.2px);
     left: -24.2px;
+    top: 0;
 }
 
 .npSl {
@@ -238,11 +231,11 @@ button:active {
     top: 0px;
     mix-blend-mode: overlay;
     pointer-events: none;
-    background-color: #8a8787;
+    background: #8a8787;
 }
 
 .slTS:hover {
-    background-color: transparent;
+    background: transparent;
 }
 
 .slTS:nth-child(1)::-webkit-slider-thumb {
@@ -294,7 +287,6 @@ button:active {
     border-radius: 5px;
     overflow: hidden;
     position: relative;
-    background: #736f6f;
 }
 
 .slTimeText {
@@ -305,7 +297,7 @@ button:active {
 }
 
 .sensorset:not(.btnTile) {
-    background-color: #847d7d;
+    background: #847d7d;
 }
 
 .sensorset {
@@ -383,20 +375,32 @@ input[type=number] {
 
 .btnTile {
     background: #635d5d;
+    min-height: 60px;
 }
 
 .sensors {
-    padding-bottom: 2%;
+    padding-bottom: 4px;
     overflow-wrap: anywhere;
 }
 
-.values {
-    display: grid;
-    grid-template-columns: auto auto;
+.row {
+    display: flex;
     justify-content: space-between;
-    grid-column-gap: 5px;
+}
+
+.odd {
+    padding-right: 1px;
     overflow-wrap: anywhere;
-    align-items: end;
+}
+
+.odd:hover {
+    overflow: visible;
+}
+
+.even {
+    word-spacing: -2px;
+    white-space: nowrap;
+    align-self: self-end;
 }
 
 .cron {
@@ -539,6 +543,11 @@ input[type=number] {
     transition: .5s;
     height: 185px;
     flex-shrink: 999;
+}
+
+.bigSpan:nth-child(1) {
+    grid-row: 1 / span 2;
+    height: 100%;
 }
 
 .buttonUnit {
@@ -696,28 +705,17 @@ button.remove {
         grid-row-gap: 5px;
     }
 
-    .bigSpan:nth-child(1) {
-        grid-row: 1 / span 2;
-        height: 100%;
-    }
-
     #sliderList {
-        grid-column-gap: 1vh;
-        grid-row-gap: 5px;
+        gap: 5px 1vh;
     }
 
     #sensorList {
-        grid-template-columns: auto auto !important;
-        grid-column-gap: 5px;
-        grid-row-gap: 5px;
+        gap: 5px;
 
     }
 
     .bigNum {
-        display: grid;
-        grid-template-columns: auto auto;
-        grid-column-gap: 5px;
-        grid-row-gap: 5px;
+        gap: 5px;
         width: 50%;
     }
 
@@ -728,7 +726,7 @@ button.remove {
 
 @media (prefers-color-scheme: dark) {
     body {
-        background-color: rgb(0, 0, 0);
+        background: rgb(0, 0, 0);
         color: #b3b3b3;
     }
 
@@ -757,7 +755,7 @@ button.remove {
 
     .slTS {
         mix-blend-mode: lighten;
-        background-color: #444444 !important;
+        background: #444444 !important;
     }
 
     .slTS:nth-child(1)::-webkit-slider-thumb {
@@ -831,6 +829,6 @@ button.remove {
 
     .sensorset:not(.btnTile),
     #sliderList .sensorset {
-        background-color: #444;
+        background: #444;
     }
 }
