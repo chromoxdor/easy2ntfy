@@ -217,6 +217,7 @@ button:active {
 .npV {
     background-image: linear-gradient(to right, #333, white);
 }
+
 .npS {
     background-image: linear-gradient(to right, white,#333);
 }
@@ -324,7 +325,7 @@ button:active {
 }
 
 .valWrap {
-    background: #ffffff28;
+    background: #635d5d;
     border-radius: 5px;
     text-align: end;
     display: flex;
@@ -823,7 +824,8 @@ button.remove {
         background: none;
     }
 
-    .btnTile {
+    .btnTile,
+    .valWrap {
         background: #333;
     }
 
