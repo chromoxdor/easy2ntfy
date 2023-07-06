@@ -68,7 +68,7 @@ Sometimes easy2ntfy hangs and with it the serial connection which makes it hard 
 
 ## **How to use:**
 
-1. Compile and upload Arduino sketch or flash binary file to an esp8266.  
+1. Compile and upload Arduino sketch or flash the binary file to an esp8266.  
 2. Connect to Access Point "easy2ntfy" (password: "configesp") and open 192.168.4.1 in a browser.  
 3. Enter your WiFi network credentials .  
 4. Enter ntfy-channel, ntfy-server, default-node-IP (other public ntfy server can be found here: [https://docs.ntfy.sh/integrations/] 
