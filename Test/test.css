@@ -40,12 +40,12 @@ body {
     height: 0;
     transition: 0.5s;
     -ms-overflow-style: none;
-      scrollbar-width: none;
+    scrollbar-width: none;
 }
 
 #inputChannel::-webkit-scrollbar {
     display: none;
-  }
+}
 
 #unitId {
     top: 2%;
@@ -68,7 +68,7 @@ body {
     color: white;
 }
 
-#allList > div > *:not(.bigNum) {
+#allList>div>*:not(.bigNum) {
     box-shadow: 0 0 10px 1px rgb(0 0 0 / 15%);
 }
 
@@ -211,7 +211,7 @@ button:active {
 }
 
 .npH {
-    background-image: linear-gradient(to right, red, yellow, lime, cyan, blue, magenta,red);
+    background-image: linear-gradient(to right, red, yellow, lime, cyan, blue, magenta, red);
 }
 
 .npV {
@@ -219,7 +219,7 @@ button:active {
 }
 
 .npS {
-    background-image: linear-gradient(to right, white,#333);
+    background-image: linear-gradient(to right, white, #333);
 }
 
 .slTS {
@@ -434,9 +434,11 @@ input[type=number] {
 #framie {
     right: -280px;
 }
+
 .sidenav {
     left: -280px;
 }
+
 .sidenav,
 #framie {
     height: 100%;
@@ -567,30 +569,32 @@ input[type=number] {
     overflow: auto;
 }
 
-.bar1, .bar2 {
+.bar1,
+.bar2 {
     width: 20px;
     height: 3px;
     background-color: #b3b3b3;
     margin: 8px 0;
     transition: 0.4s;
-  }
-  
-  .bar2 {
-    transform: translate(0, -11px) rotate(90deg);
-  }
-  
-  .change .bar1 {
-    transform: translate(0,0) rotate(-45deg);
-  }
-  
-  .change .bar2 {
-    transform: translate(0,-11px) rotate(45deg);
-  }
+}
 
-  #addBtn {
+.bar2 {
+    transform: translate(0, -11px) rotate(90deg);
+}
+
+.change .bar1 {
+    transform: translate(0, 0) rotate(-45deg);
+}
+
+.change .bar2 {
+    transform: translate(0, -11px) rotate(45deg);
+}
+
+#addBtn {
     padding: 15px;
     cursor: pointer;
 }
+
 .cInputs {
     height: 30px;
     border-radius: 5px;
@@ -601,11 +605,11 @@ input[type=number] {
 }
 
 button {
-	border: 0;
-	border-radius: 5px;
+    border: 0;
+    border-radius: 5px;
     color: black;
-	margin: 5px;
-	padding: 5px 15px;
+    margin: 5px;
+    padding: 5px 15px;
     cursor: pointer;
 }
 
@@ -636,24 +640,26 @@ button.remove {
     position: absolute;
     align-items: center;
 }
+
 #checkLocal label {
     padding-left: 13px;
 }
+
 #checkLocal input {
     height: 25px;
     width: 25px;
 }
 
 #closeBtn2 {
-    left:20px;
+    left: 20px;
 }
 
-.noChan{
+.noChan {
     padding: 5px;
     border-radius: 5px;
     color: gray;
     text-align: center;
-    white-space: pre-wrap; 
+    white-space: pre-wrap;
     box-shadow: none !important;
 }
 
@@ -681,8 +687,7 @@ button.remove {
     }
 }
 
-@media screen and (max-width: 799px) {
-}
+@media screen and (max-width: 799px) {}
 
 @media screen and (max-width: 450px) {
     #allList {
@@ -799,13 +804,15 @@ button.remove {
         box-shadow: 0 0 4px 3px grey;
         background: #44607a;
     }
-    
+
     .npSl::-moz-range-thumb {
         box-shadow: 0 0 4px 3px grey;
         background: #44607a;
     }
 
-    .npS, .npH, .npV {
+    .npS,
+    .npH,
+    .npV {
         background-color: #9b9b9b;
         background-blend-mode: multiply;
     }
