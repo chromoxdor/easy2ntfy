@@ -632,8 +632,6 @@ function fetchJson() {
             document.body.style.height = "101vh";
         }
         //setInterval(fetchJson, 2000);
-        setInterval(getTS, 10000);
-        getTS();
         getNodes();
         //longPressS();
         //longPressN();
