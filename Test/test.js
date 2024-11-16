@@ -361,16 +361,28 @@ function fetchJson() {
     unit = myJson.WiFi.Hostname;
     unitNr = myJson.System['Unit Number'];
     sysInfo = myJson.System
-    syshtml = ('<div class="syspair"><div>Sysinfo</div><div>' + unit + '</div></div>' +
-        '<div class="syspair"><div>Local Time:</div><div>' + sysInfo['Local Time'] + '</div></div>' +
-        '<div class="syspair"><div>Uptime:</div><div>' + minutesToDhm(sysInfo['Uptime']) + '</div></div>' +
-        '<div class="syspair"><div>Load:</div><div>' + sysInfo['Load'] + '%</div></div>' +
-        '<div class="syspair"><div>Free Ram:</div><div>' + sysInfo['Free RAM'] + '</div></div>' +
-        '<div class="syspair"><div>Free Stack:</div><div>' + sysInfo['Free Stack'] + '</div></div>' +
-        '<div class="syspair"><div>IP Address:</div><div>' + myJson.WiFi['IP Address'] + '</div></div>' +
-        '<div class="syspair"><div>RSSI:</div><div>' + myJson.WiFi['RSSI'] + ' dBm</div></div>' +
-        '<div class="syspair"><div>Build:</div><div>' + sysInfo['Build'] + '</div></div>' +
-        '<div class="syspair"><div>Eco Mode:</div><div>' + (sysInfo['CPU Eco Mode'] == "true" ? 'on' : 'off') + '</div></div>')
+    let syshtml = `
+                        <div class="syspair"><div>Sysinfo</div><div>${unit}</div></div>
+                        <div class="syspair"><div>Local Time:</div><div>${sysInfo['Local Time']}</div></div>
+                        <div class="syspair"><div>Uptime:</div><div>${minutesToDhm(sysInfo['Uptime'])}</div></div>
+                        <div class="syspair"><div>Load:</div><div>${sysInfo['Load']}%</div></div>
+                        ${
+                            sysInfo['Internal Temperature'] 
+                            ? `<div class="syspair">
+                                <div>Temp:</div>
+                                <div style="color: ${sysInfo['Internal Temperature'] > 65 ? 'red' : 'inherit'};">
+                                    ${sysInfo['Internal Temperature']}°C
+                                </div>
+                                </div>` 
+                            : ''
+                        }
+                        <div class="syspair"><div>Free Ram:</div><div>${sysInfo['Free RAM']}</div></div>
+                        <div class="syspair"><div>Free Stack:</div><div>${sysInfo['Free Stack']}</div></div>
+                        <div class="syspair"><div>IP Address:</div><div>${myJson.WiFi['IP Address']}</div></div>
+                        <div class="syspair"><div>RSSI:</div><div>${myJson.WiFi['RSSI']} dBm</div></div>
+                        <div class="syspair"><div>Build:</div><div>${sysInfo['Build']}</div></div>
+                        <div class="syspair"><div>Eco Mode:</div><div>${sysInfo['CPU Eco Mode'] === "true" ? 'on' : 'off'}</div></div>
+                        `;
 
     let [dateBig, clockBig] = myJson.System['Local Time'].split(" ");
     clockBig = clockBig.split(':').slice(0, -1).join(':');
