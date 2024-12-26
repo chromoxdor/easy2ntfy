@@ -13,7 +13,7 @@
 #include <base64.h>
 
 
-#include "minilzo.h"              // https://www.oberhumer.com/opensource/lzo/
+#include "minilzo.h"  // https://www.oberhumer.com/opensource/lzo/
 lzo_uint compressedSize;
 // Define compression working memory size
 #define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)
@@ -308,7 +308,7 @@ void setupDeviceWM() {
     Serial.println("Connected to wifi network!");
     //wm.setPreSaveConfigCallback(saveConfigCallback);
     WiFi.mode(WIFI_STA);
-    WiFi.hostname(newHostname.c_str());
+    WiFi.setHostname(newHostname.c_str());
     wm.startWebPortal();
   } else {
     Serial.println("Non blocking config portal running!");
@@ -534,43 +534,54 @@ void GetJson() {
     http.end();
     serializeJson(doc, minifiedPayload);
 
-//----------------- ...compression... ------------------
-
-    if (lzo_init() != LZO_E_OK) {
-      Serial.println("LZO initialization failed!");
-      while (1)
-        ;  // Halt execution
-    }
-    Serial.println("LZO initialized successfully.");
-
-    // Example input string
-    String inputData = "This is an example input string for compression using MiniLZO.";
-    size_t inputSize = minifiedPayload.length();
-
-    // Copy input data to buffer
-    memcpy(inputBuffer, minifiedPayload.c_str(), inputSize);
-
-    // Compress the input data
-    compressedSize = 0;
-    int compressResult = lzo1x_1_compress(
-      inputBuffer, inputSize,             // Input data and size
-      compressedBuffer, &compressedSize,  // Output buffer and compressed size
-      workMem                             // Working memory
-    );
-
-    if (compressResult == LZO_E_OK) {
-      Serial.println("Compression successful!");
-      Serial.println("Original size: " + String(inputSize));
-      Serial.println("Compressed size: " + String(compressedSize));
-      for (int i = 0; i < compressedSize; i++) {
-        Serial.print(compressedBuffer[i]);  // Print as decimal
-        Serial.print(" ");
-      }
-      Serial.println();  // Print new line after the array
+    if (minifiedPayload.isEmpty() || minifiedPayload == "null") {
+      Serial.println("payload empty");
+      minifiedPayload = "";
     } else {
-      Serial.println("Compression failed!");
+      if (!notkilled && doingItOnce) {
+        minifiedPayload = "killed";
+        doingItOnce = false;
+      }
+
+
+      //----------------- ...compression... ------------------
+
+      if (lzo_init() != LZO_E_OK) {
+        Serial.println("LZO initialization failed!");
+        while (1)
+          ;  // Halt execution
+      }
+      Serial.println("LZO initialized successfully.");
+
+      // Example input string
+      String inputData = "This is an example input string for compression using MiniLZO.";
+      size_t inputSize = minifiedPayload.length();
+
+      // Copy input data to buffer
+      memcpy(inputBuffer, minifiedPayload.c_str(), inputSize);
+
+      // Compress the input data
+      compressedSize = 0;
+      int compressResult = lzo1x_1_compress(
+        inputBuffer, inputSize,             // Input data and size
+        compressedBuffer, &compressedSize,  // Output buffer and compressed size
+        workMem                             // Working memory
+      );
+
+      if (compressResult == LZO_E_OK) {
+        Serial.println("Compression successful!");
+        Serial.println("Original size: " + String(inputSize));
+        Serial.println("Compressed size: " + String(compressedSize));
+        // for (int i = 0; i < compressedSize; i++) {
+        //   Serial.print(compressedBuffer[i]);  // Print as decimal
+        //   Serial.print(" ");
+        // }
+        // Serial.println();  // Print new line after the array
+      } else {
+        Serial.println("Compression failed!");
+      }
+      PostToNtfy();
     }
-    PostToNtfy();
   }
 }
 
@@ -582,35 +593,27 @@ void PostToNtfy() {
   String ntfyTopicStr = ntfyTopic;
   ntfyUrlStr = "http://" + ntfyUrlStr + "/" + ntfyTopicStr + topic2;
 
-  if (minifiedPayload.isEmpty() || minifiedPayload == "null") {
-    Serial.println("payload empty");
-    minifiedPayload = "";
-  } else {
-    if (!notkilled && doingItOnce) {
-      minifiedPayload = "killed";
-      doingItOnce = false;
-    }
-    Serial.println(ntfyUrlStr);
-    http2.begin(client, ntfyUrlStr);
-    http2.addHeader("Content-Type", "application/json");
-    if (!notkilled && !doingItOnce) { http2.addHeader("Title", "readonly"); }
-    http2.addHeader("Tags", "json");
-    http2.addHeader("Cache", "no");
 
-    
-    String base64Encoded = base64::encode(compressedBuffer, compressedSize);
-    //Serial.println(base64Encoded);
-    
+  Serial.println(ntfyUrlStr);
+  http2.begin(client, ntfyUrlStr);
+  http2.addHeader("Content-Type", "application/json");
+  if (!notkilled && !doingItOnce) { http2.addHeader("Title", "readonly"); }
+  http2.addHeader("Tags", "json");
+  http2.addHeader("Cache", "no");
 
-    int httpResponseCode2 = http2.POST(base64Encoded);
-    minifiedPayload = "";
-    Serial.print("HTTP Response code POST: ");
-    Serial.println(httpResponseCode2);
-    if (httpResponseCode2 == 200) {
-      timerDelay = 10000;
-    } else if (httpResponseCode2 == 429) {
-      timerDelay = 60000;
-    }
-    http2.end();
+
+  String base64Encoded = base64::encode(compressedBuffer, compressedSize);
+  //Serial.println(base64Encoded);
+
+
+  int httpResponseCode2 = http2.POST(base64Encoded);
+  minifiedPayload = "";
+  Serial.print("HTTP Response code POST: ");
+  Serial.println(httpResponseCode2);
+  if (httpResponseCode2 == 200) {
+    timerDelay = 10000;
+  } else if (httpResponseCode2 == 429) {
+    timerDelay = 60000;
   }
+  http2.end();
 }

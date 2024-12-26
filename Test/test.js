@@ -943,23 +943,40 @@ function sliderChange(event) {
     NrofSlides = 0;
 }
 
+//##############################################################################################################
+//      NORMAL BUTTON EVENT
+//##############################################################################################################
 function buttonClick(sensorName, gState) {
+    console.log(sensorName, gState);
+    //send to other nodes by "dButtons"
     if (sensorName.split("&")[1]) {
         utton2 = sensorName.split("&")[0];
-        nNr2 = sensorName.split("&")[1];
-        getUrl('control?cmd=SendTo,' + nNr2 + ',"event,' + utton2 + 'Event"');
+        nNr2 = sensorName.split("&")[1].split(">")[0];
+        console.log(sensorName.split(">")[1])
+        if (sensorName.split(">")[1] && !sensorName.split(">")[1].endsWith('L')) {
+            getUrl('control?cmd=SendTo,' + nNr2 + ',"GPIOToggle,' + sensorName.split(">")[1] + '"');
+        }
+        else getUrl('control?cmd=SendTo,' + nNr2 + ',"event,' + utton2 + 'Event"');
     }
-    else if (sensorName.split("?")[1]) {
-        gpioNr = sensorName.split("?")[1];
+    //button event by "switch plugin"
+    else if (sensorName.split("|")[1]) {
+        gpioNr = sensorName.split("|")[1];
+        uN = sensorName.split("|")[0];
         gS = gState == 1 ? 0 : 1
-        if (unitNr === unitNr1) { getUrl('control?cmd=gpio,' + gpioNr + ',' + gS); }
-        else { getUrl('control?cmd=SendTo,' + nNr + ',"gpio,' + gpioNr + ',' + gS + '"'); }
+        if (unitNr === unitNr1) { getUrl('control?cmd=gpio,' + gpioNr + ',' + gS + ' ' + 'control?cmd=event,' + uN + 'Event', "dualcommand"); }
+        else { getUrl('control?cmd=SendTo,' + nNr + ',"gpio,' + gpioNr + ',' + gS + '"' + ' ' + 'control?cmd=SendTo,' + nNr + ',"event,' + uN + 'Event"', "dualcommand"); }
     }
+    //normal button event by "dButtons"
     else {
         if (unitNr === unitNr1) { getUrl('control?cmd=event,' + sensorName + 'Event'); }
         else { getUrl('control?cmd=SendTo,' + nNr + ',"event,' + sensorName + 'Event"'); }
     }
+    setTimeout(fetchJson, 400);
 }
+
+//##############################################################################################################
+//      PUSH BUTTON EVENT
+//##############################################################################################################
 
 function pushClick(sensorName, b) {
     if (b == 0) { isittime = 1; playSound(1000); }
