@@ -39,14 +39,10 @@ WebsocketsClient ws;
 WiFiManager wm;
 WiFiClient client;
 HTTPClient http;
-HTTPClient http2;
-HTTPClient http3;
 WebServer server(80);
 String newHostname = "Easy2Ntfy";
-//String payload;
 String minifiedPayload;
 String hexString;
-//String minifiedPayload2;
 String sendOKStr;
 String toESPcommandStr;
 
@@ -118,12 +114,18 @@ bool blockWM = false;  // Change this to false if you want your code to continue
 
 //############################################# SETUP ##########################################
 void setup() {
-  //analogWriteRange(1023); //needs to set after release 3.0 otherwise Arduino core default is 256
   Serial.begin(115200);
   delay(3000);
   Serial.println("Setup mode...");
   pinMode(ledPin, OUTPUT);
   analogWriteResolution(10);
+
+  if (lzo_init() != LZO_E_OK) {
+    Serial.println("LZO initialization failed!");
+    while (1)
+      ;  // Halt execution
+  }
+
   // --------clear Wifi settings---------
   // wifiManager.resetSettings();
   //---------------------------------------
@@ -160,6 +162,7 @@ void setup() {
     }
   } else {
     Serial.println("failed to mount FS");
+    SPIFFS.format();
   }
   ESPeasyIPchanged = ESPeasyIP;
   //server.begin();  // declare this at the beggining of the code => ESP8266WebServer server(80);
@@ -454,9 +457,9 @@ void Command2ESP(const String& toESPcommand) {
   Serial.println("----------------------sending command to ESP...---------------------");
   String ESPeasyPath2 = "http://" + ESPeasyIPchanged + "/" + toESPcommand;
   Serial.println(ESPeasyPath2);
-  http3.begin(client, ESPeasyPath2);
+  http.begin(client, ESPeasyPath2);
   // GET json from ESPeasyIP----------------------------
-  int httpResponseCode = http3.GET();
+  int httpResponseCode = http.GET();
   if (httpResponseCode > 0) {
     Serial.print("HTTP Response code GET: ");
     Serial.println(httpResponseCode);
@@ -467,7 +470,7 @@ void Command2ESP(const String& toESPcommand) {
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
   }
-  http3.end();
+  http.end();
 }
 
 //################################### GET json from ESPeasyIP... ###########################################
@@ -546,11 +549,11 @@ void GetJson() {
 
       //----------------- ...compression... ------------------
 
-      if (lzo_init() != LZO_E_OK) {
-        Serial.println("LZO initialization failed!");
-        while (1)
-          ;  // Halt execution
-      }
+      // if (lzo_init() != LZO_E_OK) {
+      //   Serial.println("LZO initialization failed!");
+      //   while (1)
+      //     ;  // Halt execution
+      // }
       Serial.println("LZO initialized successfully.");
 
       // Example input string
@@ -595,18 +598,18 @@ void PostToNtfy() {
 
 
   Serial.println(ntfyUrlStr);
-  http2.begin(client, ntfyUrlStr);
-  http2.addHeader("Content-Type", "application/json");
-  if (!notkilled && !doingItOnce) { http2.addHeader("Title", "readonly"); }
-  http2.addHeader("Tags", "json");
-  http2.addHeader("Cache", "no");
+  http.begin(client, ntfyUrlStr);
+  http.addHeader("Content-Type", "application/json");
+  if (!notkilled && !doingItOnce) { http.addHeader("Title", "readonly"); }
+  http.addHeader("Tags", "json");
+  http.addHeader("Cache", "no");
 
 
   String base64Encoded = base64::encode(compressedBuffer, compressedSize);
   //Serial.println(base64Encoded);
 
 
-  int httpResponseCode2 = http2.POST(base64Encoded);
+  int httpResponseCode2 = http.POST(base64Encoded);
   minifiedPayload = "";
   Serial.print("HTTP Response code POST: ");
   Serial.println(httpResponseCode2);
@@ -615,5 +618,5 @@ void PostToNtfy() {
   } else if (httpResponseCode2 == 429) {
     timerDelay = 60000;
   }
-  http2.end();
+  http.end();
 }
