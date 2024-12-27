@@ -25,10 +25,15 @@ lzo_uint compressedSize;
 static uint8_t workMem[WORK_MEM_SIZE];
 
 // Buffers for compression and decompression
+#ifdef CONFIG_IDF_TARGET_ESP32
+#pragma message("Compiling for ESP32 Classic");
+uint8_t* inputBuffer = (uint8_t*)malloc(INPUT_BUFFER_SIZE);
+uint8_t* compressedBuffer = (uint8_t*)malloc(OUTPUT_BUFFER_SIZE);
+#else
+#pragma message("Compiling for other ESP32 Variants");
 uint8_t inputBuffer[INPUT_BUFFER_SIZE];
 uint8_t compressedBuffer[OUTPUT_BUFFER_SIZE];
-uint8_t decompressedBuffer[INPUT_BUFFER_SIZE];
-
+#endif
 
 #define DEBUG_WEBSOCKETS_PORT Serial
 // Debug Level from 0 to 4
@@ -40,7 +45,7 @@ WiFiManager wm;
 WiFiClient client;
 HTTPClient http;
 WebServer server(80);
-String newHostname = "Easy2Ntfy";
+const char* newHostname = "Easy2Ntfy";
 String minifiedPayload;
 String hexString;
 String sendOKStr;
@@ -299,6 +304,7 @@ void onEventsCallback(WebsocketsEvent event, String data) {
 //############################################# WIFI MANAGER ##########################################
 //Needs to be called only in the setup void.
 void setupDeviceWM() {
+  WiFi.setHostname(newHostname);
   wm.setConfigPortalBlocking(blockWM);
   // wifiManager.resetSettings();
   wm.addParameter(&custom_ESPeasyIP);
@@ -311,7 +317,6 @@ void setupDeviceWM() {
     Serial.println("Connected to wifi network!");
     //wm.setPreSaveConfigCallback(saveConfigCallback);
     WiFi.mode(WIFI_STA);
-    WiFi.setHostname(newHostname.c_str());
     wm.startWebPortal();
   } else {
     Serial.println("Non blocking config portal running!");
