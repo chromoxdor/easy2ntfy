@@ -1,4 +1,7 @@
+//issue: topic including "." doesn#t work for websocket
+//esp32 [2.0.17] board defs
 // Required Libraries
+#define ESP2NTFY_VERSION "v1.0"
 #include <FS.h>  // Needs to be included first to avoid crashes
 #include <SPIFFS.h>
 #include <NTPClient.h>
@@ -7,34 +10,29 @@
 #include <HTTPClient.h>
 #include <DNSServer.h>
 #include <WebServer.h>
-#include <WiFiManager.h>          // WiFi Manager: https://github.com/tzapu/WiFiManager
-#include <ArduinoJson.h>          // JSON Handling: https://github.com/bblanchon/ArduinoJson
-#include <WebSockets2_Generic.h>  // WebSocket Library: https://github.com/khoih-prog/WebSockets2_Generic
+#include <WiFiManager.h>          // WiFi Manager [2.0.17]: https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>          // [7.3.0] JSON Handling: https://github.com/bblanchon/ArduinoJson
+#include <WebSockets2_Generic.h>  // [1.13.2]WebSocket Library: https://github.com/khoih-prog/WebSockets2_Generic
 #include <base64.h>
-#include "minilzo.h"  // MiniLZO Compression: https://www.oberhumer.com/opensource/lzo/
+#include <minilzo.h>              //MiniLZO [2.10] Compression: https://www.oberhumer.com/opensource/lzo/
 
 // Compression Parameters
 #define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)                                      // Compression working memory size
-#define INPUT_BUFFER_SIZE 20000                                                   // Input buffer size
+#define INPUT_BUFFER_SIZE 20480                                                   // Input buffer size
 #define OUTPUT_BUFFER_SIZE (INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size
 
-// Working memory for MiniLZO
-static uint8_t workMem[WORK_MEM_SIZE];
-lzo_uint compressedSize;
-// Buffers for Compression and Decompression
 #ifdef CONFIG_IDF_TARGET_ESP32
+#define ESP_BOARD "32Classic"
 #pragma message("Compiling for ESP32 Classic")
-uint8_t* inputBuffer = (uint8_t*)malloc(INPUT_BUFFER_SIZE);
-uint8_t* compressedBuffer = (uint8_t*)malloc(OUTPUT_BUFFER_SIZE);
-#else
-#pragma message("Compiling for other ESP32 Variants")
+#elif CONFIG_IDF_TARGET_ESP32C3
+#define ESP_BOARD "32C3"
+#pragma message("Compiling for ESP32 C3")
 uint8_t inputBuffer[INPUT_BUFFER_SIZE];
 uint8_t compressedBuffer[OUTPUT_BUFFER_SIZE];
 #endif
-
 // Debugging Settings for WebSockets
 #define DEBUG_WEBSOCKETS_PORT Serial  // Set debug port
-#define _WEBSOCKETS_LOGLEVEL_ 4       // Debug Level (0 to 4)
+#define _WEBSOCKETS_LOGLEVEL_ 1       // Debug Level (0 to 4)
 
 // Using WebSockets2_Generic Namespace
 using namespace websockets2_generic;
@@ -47,7 +45,7 @@ HTTPClient http;
 WebServer server(80);
 
 // General Variables
-const char* newHostname = "Easy2Ntfy";
+const char* newHostname = "Easy2Ntfy32";
 String minifiedPayload;
 String hexString;
 String sendOKStr;
@@ -79,11 +77,13 @@ String websockeMsg;
 String topic2 = "_json";  // Add this to the ntfy topic to create an extra channel for receiving messages
 
 // LED Variables
-const int ledPin = 8;         // LED pin number
+int ledPin = 2;               // LED pin
+bool invert = false;          // Set to true if the LED is active LOW
 int ledState = LOW;           // LED state
 uint32_t previousMillis = 0;  // Last time LED was updated
 const long interval = 1000;   // Blink interval (milliseconds)
 bool blinkLed = false;
+String receiveTopic;
 
 //############################################# GET TIME #########################################
 
@@ -107,13 +107,21 @@ uint32_t getTime() {
 char ESPeasyIP[16] = "0.0.0.0";
 char ntfyUrl[80] = "ntfy.envs.net";
 char ntfyTopic[80] = "";
+char ledPinStr[4] = "2";
+const char* version = "<H1>EASY2NTFY_" ESP_BOARD " " ESP2NTFY_VERSION "</H1>";
+
+char customHtml_checkbox_inverted[50] = "type=\"checkbox\"";
 //char ntfyTag[80] = "1234";
 //char output[2] = "5";
 
 // WiFiManager Custom Parameters
+WiFiManagerParameter custom_text(version);
 WiFiManagerParameter custom_ESPeasyIP("ESPeasyIP", "ESPeasyIP", ESPeasyIP, 40);
 WiFiManagerParameter custom_ntfyUrl("ntfyUrl", "Url to ntfy server", ntfyUrl, 80);
 WiFiManagerParameter custom_ntfyTopic("ntfyTopic", "Topic", ntfyTopic, 80);
+WiFiManagerParameter custom_ledPin("ledPin", "LED pin", ledPinStr, 4);  // Use the char array
+WiFiManagerParameter custom_iverted_checkbox("invert", "Invert the LED", "T", 2, customHtml_checkbox_inverted, WFM_LABEL_AFTER);
+
 //WiFiManagerParameter custom_ntfyTag("ntfyTag", "Shared Secret", ntfyTag, 80);
 
 //###############################################################################################################################
@@ -130,7 +138,8 @@ void setup() {
   // Initialize Serial Communication
   Serial.begin(115200);
   delay(3000);  // Wait for 3 seconds
-  Serial.println("Setup mode...");
+  Serial.println(F("Version: easy2ntfy32_1.0"));
+  Serial.println(F("Setup mode..."));
 
   // Initialize LED pin
   pinMode(ledPin, OUTPUT);
@@ -138,24 +147,24 @@ void setup() {
 
   // Initialize LZO Compression
   if (lzo_init() != LZO_E_OK) {
-    Serial.println("LZO initialization failed!");
+    Serial.println(F("LZO initialization failed!"));
     while (1)
       ;  // Halt execution if initialization fails
   }
-  Serial.println("LZO initialized successfully.");
+  Serial.println(F("LZO initialized successfully."));
 
   // Mount the SPIFFS file system and load configuration
-  Serial.println("Mounting file system...");
+  Serial.println(F("Mounting file system..."));
   if (SPIFFS.begin()) {
-    Serial.println("File system mounted");
+    Serial.println(F("File system mounted"));
 
     // Check if configuration file exists
     if (SPIFFS.exists("/config.json")) {
-      Serial.println("Reading config file...");
+      Serial.println(F("Reading config file..."));
       File configFile = SPIFFS.open("/config.json", "r");
 
       if (configFile) {
-        Serial.println("Opened config file");
+        Serial.println(F("Opened config file"));
 
         // Read the contents of the config file
         size_t size = configFile.size();
@@ -164,29 +173,84 @@ void setup() {
 
         // Parse JSON configuration
         DynamicJsonDocument json(1024);
-        DeserializationError error = deserializeJson(json, buf.get(), DeserializationOption::NestingLimit(20));
+
+        DeserializationError error = deserializeJson(json, buf.get(), DeserializationOption::NestingLimit(2));
 
         if (error) {
-          Serial.println("Failed to parse config JSON");
+          Serial.println(F("Failed to parse config JSON"));
         } else {
           // Print and load configuration values
           serializeJson(json, Serial);
-          strcpy(ESPeasyIP, json["ESPeasyIP"]);
-          strcpy(ntfyUrl, json["ntfyUrl"]);
-          strcpy(ntfyTopic, json["ntfyTopic"]);
-          //strcpy(ntfyTag, json["ntfyTag"]);
-          Serial.println("\nConfiguration loaded successfully.");
+
+          // Validate and extract ESPeasyIP
+          if (json.containsKey("ESPeasyIP")) {
+            strncpy(ESPeasyIP, json["ESPeasyIP"], sizeof(ESPeasyIP) - 1);
+            ESPeasyIP[sizeof(ESPeasyIP) - 1] = '\0';
+          } else {
+            Serial.println(F("Missing field: ESPeasyIP"));
+          }
+
+          // Validate and extract ntfyUrl
+          if (json.containsKey("ntfyUrl")) {
+            strncpy(ntfyUrl, json["ntfyUrl"], sizeof(ntfyUrl) - 1);
+            ntfyUrl[sizeof(ntfyUrl) - 1] = '\0';
+          } else {
+            Serial.println(F("Missing field: ntfyUrl"));
+          }
+
+          // Validate and extract ntfyTopic
+          if (json.containsKey("ntfyTopic")) {
+            strncpy(ntfyTopic, json["ntfyTopic"], sizeof(ntfyTopic) - 1);
+            ntfyTopic[sizeof(ntfyTopic) - 1] = '\0';
+          } else {
+            Serial.println(F("Missing field: ntfyTopic"));
+          }
+
+          //Validate and extract ledPin
+          if (json.containsKey("ledPin")) {
+            strncpy(ledPinStr, json["ledPin"], sizeof(ledPinStr) - 1);
+            ledPinStr[sizeof(ledPinStr) - 1] = '\0';
+            ledPin = atoi(ledPinStr);
+            if (ledPin == 0 && strcmp(ledPinStr, "0") != 0) {
+              Serial.println(F("Invalid LED pin value"));
+            }
+          } else {
+            Serial.println(F("Missing field: ledPin"));
+          }
+
+          if (json.containsKey("invert")) {
+            invert = json["invert"].as<bool>();  // Parse directly as boolean
+          } else {
+            // If the key doesn't exist or is invalid, set a default
+            Serial.println(F("No 'invert' key found, using default (false)"));
+            invert = false;  // Default to false if the key doesn't exist or is invalid
+          }
+
+          Serial.println();
+          Serial.print(F("IP:"));
+          Serial.println(ESPeasyIP);
+          Serial.print(F("Url:"));
+          Serial.println(ntfyUrl);
+          Serial.print(F("topic:"));
+          Serial.println(ntfyTopic);
+          Serial.print(F("LEDPin:"));
+          Serial.println(ledPin);
+          Serial.print(F("InvertedLED?:"));
+          Serial.println(invert);
+
+          Serial.println(F("\nConfiguration loaded successfully."));
         }
       } else {
-        Serial.println("Failed to open config file");
+        Serial.println(F("Failed to open config file"));
       }
     } else {
-      Serial.println("Config file does not exist");
+      Serial.println(F("Config file does not exist"));
     }
   } else {
     // Handle file system mount failure
-    Serial.println("Failed to mount file system, formatting...");
+    Serial.println(F("Failed to mount file system, formatting..."));
     SPIFFS.format();
+    ESP.restart();
   }
 
   // Store current IP address in a string
@@ -195,21 +259,22 @@ void setup() {
   // Initialize WebSockets
   setupDeviceWM();  // Custom WiFiManager setup
 
-  // Connect to WebSocket server
-  String receiveTopic = ntfyTopic;
-  Serial.println("Connecting to WebSocket on topic: " + receiveTopic);
-
   ws.onMessage(onMessageCallback);  // Set up message handler callback
   ws.onEvent(onEventsCallback);     // Set up event handler callback
 
+  // Connect to WebSocket server
+  receiveTopic = ntfyTopic;
+  Serial.print(F("Connecting to WebSocket on topic: "));
+  Serial.println(receiveTopic);
+
   bool connected = ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
   if (connected) {
-    Serial.println("WebSocket Connected!");
+    Serial.println(F("WebSocket Connected!"));
     // Optionally send a message after connecting
     // String WS_msg = String("Hello to Server from ");
     // ws.send(WS_msg);
   } else {
-    Serial.println("WebSocket Connection Failed!");
+    Serial.println(F("WebSocket Connection Failed!"));
   }
 
   // Send WebSocket Ping
@@ -218,10 +283,11 @@ void setup() {
 
 
 //############################################# WEBSOCKETS ##########################################
+
 void onMessageCallback(WebsocketsMessage message) {
   websockeMsg = message.data();
   Serial.println();
-  Serial.println("----------------------Websockets message received---------------------");
+  Serial.println(F("----------------------Websockets message received--------------------"));
   Serial.println(message.data());
   parseWsMessage();
 }
@@ -239,13 +305,13 @@ void parseWsMessage() {
   receiveTime = Jcommand["time"];
 
   // Print extracted values for debugging
-  Serial.print("Title: ");
+  Serial.print(F("Title: "));
   Serial.println(sendOK);
-  Serial.print("Message: ");
+  Serial.print(F("Message: "));
   Serial.println(toESPcommand);
-  Serial.print("Time: ");
+  Serial.print(F("Time: "));
   Serial.println(receiveTime);
-  Serial.print("Unix Time: ");
+  Serial.print(F("Unix Time: "));
   Serial.println(getTime());
 
   // Store values as strings for easier comparison
@@ -254,8 +320,8 @@ void parseWsMessage() {
 
   // Check if the message is a "send" command
   if (sendOKStr.indexOf("send") != -1) {
-    analogWrite(ledPin, 0);  // Turn off the LED
-    Serial.println("Sending data...");
+    analogWrite(ledPin, applyInversion(0));  // Turn off the LED
+    Serial.println(F("Sending data..."));
     receiveLoop = true;
     lastUpdate = millis();
 
@@ -270,11 +336,11 @@ void parseWsMessage() {
   } else if (sendOKStr == "stop") {
     // Stop sending data and turn on the LED
     receiveLoop = false;
-    analogWrite(ledPin, 1000);  // Turn on the LED
+    analogWrite(ledPin, applyInversion(1000));  // Turn on the LED
 
   } else if (sendOKStr == "change_node") {
     // Change the node IP address
-    Serial.println("Changing node...");
+    Serial.println(F("Changing node..."));
     ESPeasyIPchanged = toESPcommandStr;
     lastTime = millis() - (timerDelay - 1000);  // Send JSON immediately
 
@@ -298,16 +364,16 @@ void parseWsMessage() {
         splitCommand(toESPcommandStr);  // Split and execute dual command
       }
     } else {
-      Serial.println("Command discarded. Took too long!");
+      Serial.println(F("Command discarded. Took too long!"));
     }
   }
 
   // Print readonly status for debugging
-  Serial.print("Readonly: ");
+  Serial.print(F("Readonly: "));
   Serial.println(!notkilled);
 
   // Print separator for debugging
-  Serial.println("----------------------------------------------------------------------");
+  Serial.println(F("---------------------------------------------------------------------"));  
 }
 
 void splitCommand(const String& command) {
@@ -318,48 +384,58 @@ void splitCommand(const String& command) {
   Command2ESP(commandStr1);
   //maybe we should wait a little with sending the second command
   Command2ESP(commandStr2);
-
 }
 
 void onEventsCallback(WebsocketsEvent event, String data) {
   (void)data;
 
   if (event == WebsocketsEvent::ConnectionOpened) {
-    Serial.println("Connnection Opened");
-    analogWrite(ledPin, 1000);
-    Serial.println("inital heartbeat");
+    Serial.println(F("Connection Opened"));
+    analogWrite(ledPin, applyInversion(1000));
+    Serial.println(F("Initial heartbeat"));
     ws.send("H");
     blinkLed = false;
   } else if (event == WebsocketsEvent::ConnectionClosed) {
-    Serial.println("Connnection Closed");
+    Serial.println(F("Connection Closed"));
     blinkLed = true;
   } else if (event == WebsocketsEvent::GotPing) {
-    Serial.println("Got a Ping!");
+    Serial.println(F("Got a Ping!"));
   } else if (event == WebsocketsEvent::GotPong) {
-    Serial.println("Got a Pong!");
+    Serial.println(F("Got a Pong!"));
   }
 }
+
+
 //#####################################################################################################
 
 //############################################# WIFI MANAGER ##########################################
+
 //Needs to be called only in the setup void.
 void setupDeviceWM() {
   WiFi.setHostname(newHostname);
-  wm.setConfigPortalBlocking(blockWM);
-  // wifiManager.resetSettings();
+  wm.addParameter(&custom_text);
   wm.addParameter(&custom_ESPeasyIP);
   wm.addParameter(&custom_ntfyUrl);
   wm.addParameter(&custom_ntfyTopic);
-  //wm.addParameter(&custom_ntfyTag);
-  wm.setPreSaveConfigCallback(saveConfigCallback);
+  wm.addParameter(&custom_ledPin);
+  wm.addParameter(&custom_iverted_checkbox);
+
+  wm.setSaveParamsCallback(saveConfigCallback);
+
+  wm.setConfigPortalBlocking(blockWM);
+  std::vector<const char*> menu = { "wifi", "info", "param", "sep", "restart", "exit" };
+  wm.setMenu(menu);
+  wm.setConfigPortalTimeout(180);
+  wm.setClass("invert");
+  // wifiManager.resetSettings();
   if (wm.autoConnect("easy2ntfy", "configesp")) {
     // if you get here you have connected to the WiFi
-    Serial.println("Connected to wifi network!");
+    Serial.println(F("Connected to wifi network!"));
     //wm.setPreSaveConfigCallback(saveConfigCallback);
     WiFi.mode(WIFI_STA);
     wm.startWebPortal();
   } else {
-    Serial.println("Non blocking config portal running!");
+    Serial.println(F("Non blocking config portal running!"));
   }
   // call the code down to activate wifi so users can configure the device, event if it's connected to the local network
   // wm.startConfigPortal("IOT_Device");
@@ -398,46 +474,57 @@ void loopDeviceWM() {
     strcpy(ESPeasyIP, custom_ESPeasyIP.getValue());
     strcpy(ntfyUrl, custom_ntfyUrl.getValue());
     strcpy(ntfyTopic, custom_ntfyTopic.getValue());
-    //strcpy(ntfyTag, custom_ntfyTag.getValue());
-    Serial.print("IP:");
+    strcpy(ledPinStr, custom_ledPin.getValue());
+    ledPin = atoi(ledPinStr);
+    invert = (custom_iverted_checkbox.getValue() == "T");
+
+    Serial.print(F("IP:"));
     Serial.println(ESPeasyIP);
-    Serial.print("Url:");
+    Serial.print(F("Url:"));
     Serial.println(ntfyUrl);
-    Serial.print("topic:");
+    Serial.print(F("topic:"));
     Serial.println(ntfyTopic);
-    //Serial.print("tag:");
-    //Serial.println(ntfyTag);
-    Serial.println("saving config");
+    Serial.print(F("LEDPin:"));
+    Serial.println(ledPin);
+    Serial.print(F("InvertedLED?:"));
+    Serial.println(invert);
+    // Serial.println(ntfyTag);  // Keep this commented out if not in use
+    Serial.println(F("saving config"));
     DynamicJsonDocument json(1024);
     json["ESPeasyIP"] = ESPeasyIP;
     json["ntfyUrl"] = ntfyUrl;
     json["ntfyTopic"] = ntfyTopic;
-    //json["ntfyTag"] = ntfyTag;
+    itoa(ledPin, ledPinStr, 10);
+    json["ledPin"] = ledPinStr;
+    json["invert"] = invert ? 1 : 0;
+
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile) {
-      Serial.println("failed to open config file for writing");
+      Serial.println(F("failed to open config file for writing"));
     }
-    serializeJson(json, Serial);
+    //serializeJson(json, Serial);
     serializeJson(json, configFile);
     configFile.close();
     shouldSaveConfig = false;
     ESPeasyIPchanged = ESPeasyIP;
-    String receiveTopic = ntfyTopic;
+    receiveTopic = ntfyTopic;
     ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
     // end save
   }
 }
 
+
 //#####################################################################################################
 
 //############################################# LOOP ##################################################
+
 void loop() {
   // Necessary for WiFi Manager to handle WiFi connection management
   loopDeviceWM();
 
   // Check for WiFi connection every 30 seconds
   if (WiFi.status() != WL_CONNECTED && (millis() - previous_time >= 30000)) {
-    Serial.println("Reconnecting to WiFi network");
+    Serial.println(F("Reconnecting to WiFi network"));
     WiFi.reconnect();
     previous_time = millis();  // Update the previous time for reconnection
   }
@@ -447,8 +534,8 @@ void loop() {
     ws.poll();  // Necessary to process incoming WebSocket messages
 
     // Send heartbeat every 60 seconds to keep the connection alive
-    if (millis() - heartbeatTime >= 60000) {
-      Serial.println("Sending heartbeat");
+    if (millis() - heartbeatTime > 60000) {
+      Serial.println(F("Sending heartbeat"));
       heartbeatTime = millis();  // Update the last heartbeat time
       ws.send("H");              // Send heartbeat message
     }
@@ -464,27 +551,28 @@ void loop() {
   if (blinkLed) {
     if (millis() - previousMillis >= interval) {
       previousMillis = millis();  // Update the previous time of LED blink
-
+      Serial.println(F("----------------------reconnecting..................................."));
       // Attempt to reconnect WebSocket if LED is blinking
-      String receiveTopic = ntfyTopic;
-      if (!ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws")) {
-        Serial.println("Failed to reconnect WebSocket");
-      }
+      receiveTopic = ntfyTopic;
+      ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
+      // if (!ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws")) {
+      //   Serial.println("Failed to reconnect WebSocket");
+      // }
 
       // Toggle LED state (blink LED on/off)
-      ledState = (ledState == 900) ? 1024 : 900;  // Alternate between two states
-      analogWrite(ledPin, ledState);              // Update LED state
+      ledState = (ledState == 900) ? 1024 : 900;      // Alternate between two states
+      analogWrite(ledPin, applyInversion(ledState));  // Update LED state
     }
   }
 
   //------------------timeout client--------------------------------
   if ((millis() - lastUpdate) > timerDelay2 && receiveLoop) {
     receiveLoop = false;
-    ESPeasyIPchanged = ESPeasyIP;  // Save current IP to revert later
-    analogWrite(ledPin, 1000);     // Turn on the LED indicating timeout
-    Serial.println("----------------------------------------------------------------------");
-    Serial.println("Client timed out. No more JSON will be sent.");
-    Serial.print("Setting IP back to: ");
+    ESPeasyIPchanged = ESPeasyIP;               // Save current IP to revert later
+    analogWrite(ledPin, applyInversion(1000));  // Turn on the LED indicating timeout
+    Serial.println(F("--------------------------------timout-------------------------------"));
+    Serial.println(F("Client timed out. No more JSON will be sent."));
+    Serial.print(F("Setting IP back to: "));
     Serial.println(ESPeasyIPchanged);  // Show the reverted IP
   }
 
@@ -498,32 +586,36 @@ void loop() {
   //--------------------------------------------------------------
 }
 
+
 //################################### Command 2 ESPeasyIP ##############################################
+
 void Command2ESP(const String& toESPcommand) {
   Serial.println();
-  Serial.println("----------------------sending command to ESP...---------------------");
+  Serial.println(F("----------------------sending command to ESP...----------------------"));
   String ESPeasyPath2 = "http://" + ESPeasyIPchanged + "/" + toESPcommand;
   Serial.println(ESPeasyPath2);
   http.begin(client, ESPeasyPath2);
   // GET json from ESPeasyIP----------------------------
   int httpResponseCode = http.GET();
   if (httpResponseCode > 0) {
-    Serial.print("HTTP Response code GET: ");
+    Serial.print(F("HTTP Response code GET: "));
     Serial.println(httpResponseCode);
     Serial.println();
-    Serial.println("----------------------sending update...----------------------");
+    Serial.println(F("----------------------sending update...------------------------------"));
     lastTime = millis() - (timerDelay - 1000);  //sending json almost immediately after the last command is received
   } else {
-    Serial.print("Error code: ");
+    Serial.print(F("Error code: "));
     Serial.println(httpResponseCode);
   }
   http.end();
 }
 
+
 //################################### GET json from ESPeasyIP... ###########################################
+
 void GetJson() {
   Serial.println();
-  Serial.println("----------------------getting JSON from ESP...----------------------");
+  Serial.println(F("----------------------getting JSON from ESP...-----------------------"));
   Serial.println(ESPeasyIPchanged);
   //String ESPeasyPath = "http://" + ESPeasyIPchanged + "/json";
 
@@ -533,7 +625,9 @@ void GetJson() {
   http.GET();
 
   // Parse response
-  DynamicJsonDocument filter(3500);
+  //DynamicJsonDocument filter(2000);
+
+  StaticJsonDocument<1000> filter;
   filter["Sensors"][0]["TaskValues"][0]["ValueNumber"] = true;
   filter["Sensors"][0]["TaskValues"][0]["Value"] = true;
   filter["Sensors"][0]["TaskValues"][0]["NrDecimals"] = true;
@@ -560,7 +654,20 @@ void GetJson() {
   filter["System"]["Unit Number"] = true;
   filter["System"]["Load"] = true;
 
-  DynamicJsonDocument doc(20000);
+  // Define the size of the DynamicJsonDocument (20 KB)
+  const size_t jsonDocumentSize = INPUT_BUFFER_SIZE;  // 20 KB
+  const size_t memoryThreshold = 5000;                // Threshold for available heap memory in bytes (5 KB)
+
+  // Check if there is enough memory available
+  if (ESP.getFreeHeap() < jsonDocumentSize + memoryThreshold) {
+    // Not enough memory to allocate the DynamicJsonDocument
+    Serial.print(F("Free_Heap: "));
+    Serial.println(ESP.getFreeHeap());
+    Serial.println(F("Not enough memory to deserialize JSON. Skipping deserialization."));
+    return;  // Exit early if memory is insufficient
+  }
+
+  DynamicJsonDocument doc(jsonDocumentSize);
 
   // deserializeJson(doc, http.getStream());
   http.setTimeout(2000);
@@ -574,7 +681,7 @@ void GetJson() {
     // Special case for EmptyInput or IncompleteInput errors, retry the request
     if (strcmp_P("EmptyInput", reinterpret_cast<const char*>(error.f_str())) == 0 || strcmp_P("IncompleteInput", reinterpret_cast<const char*>(error.f_str())) == 0) {
       ESPeasyIPchanged = ESPeasyIP;  // Reset the IP address
-      Serial.println("Problems with getting JSON from ESPeasy node. Retrying...");
+      Serial.println(F("Problems with getting JSON from ESPeasy node. Retrying..."));
       http.end();                                 // Close the HTTP connection
       lastTime = millis() - (timerDelay - 2000);  // Adjust the lastTime to retry soon
     }
@@ -586,7 +693,7 @@ void GetJson() {
   serializeJson(doc, minifiedPayload);
 
   if (minifiedPayload.isEmpty() || minifiedPayload == "null") {
-    Serial.println("payload empty");
+    Serial.println(F("payload empty"));
     minifiedPayload = "";
   } else {
     if (!notkilled && doingItOnce) {
@@ -594,39 +701,84 @@ void GetJson() {
       doingItOnce = false;
     }
     //------------------compression section--------------------------------
-    size_t inputSize = minifiedPayload.length();
-
-    // Copy input data to buffer
-    memcpy(inputBuffer, minifiedPayload.c_str(), inputSize);
-
-    // Compress the input data
-    compressedSize = 0;
-    int compressResult = lzo1x_1_compress(
-      inputBuffer, inputSize,             // Input data and size
-      compressedBuffer, &compressedSize,  // Output buffer and compressed size
-      workMem                             // Working memory
-    );
-
-    if (compressResult == LZO_E_OK) {
-      Serial.println("Compression successful!");
-      Serial.println("Original size: " + String(inputSize));
-      Serial.println("Compressed size: " + String(compressedSize));
-      // for (int i = 0; i < compressedSize; i++) {
-      //   Serial.print(compressedBuffer[i]);  // Print as decimal
-      //   Serial.print(" ");
-      // }
-      // Serial.println();  // Print new line after the array
-    } else {
-      Serial.println("Compression failed!");
-    }
-    PostToNtfy();
+    // Call compression function
+    compressData(minifiedPayload);
   }
 }
 
-//################################## ...and POST it to Ntfy ##################################################
-void PostToNtfy() {
+
+//################################## ...compres the Data with LZO ##################################################
+
+void compressData(const String& inputPayload) {
   Serial.println();
-  Serial.println("----------------------...sending JSON to client----------------------");
+  Serial.println(F("----------------------...compressing...------------------------------"));
+
+  // Working memory for MiniLZO
+  static uint8_t workMem[WORK_MEM_SIZE];
+  lzo_uint compressedSize = 0;
+
+  // Buffers for Compression and Decompression
+#ifdef CONFIG_IDF_TARGET_ESP32
+  uint8_t* inputBuffer = (uint8_t*)malloc(INPUT_BUFFER_SIZE);
+  uint8_t* compressedBuffer = (uint8_t*)malloc(OUTPUT_BUFFER_SIZE);
+
+  // Check if malloc was successful
+  if (inputBuffer == NULL || compressedBuffer == NULL) {
+    Serial.println(F("Memory allocation failed for inputBuffer or compressedBuffer."));
+    return;
+  }
+#endif
+
+  const size_t inputSize = inputPayload.length();
+
+  // Check if there is enough free memory to proceed with compression
+  if (ESP.getFreeHeap() < (inputSize + WORK_MEM_SIZE + OUTPUT_BUFFER_SIZE)) {
+    // Not enough memory for compression
+    Serial.print(F("Free Heap: "));
+    Serial.println(ESP.getFreeHeap());
+    Serial.println(F("Not enough memory to compress the data. Skipping compression."));
+    return;  // Exit if there is not enough memory
+  }
+
+  // Copy input data to buffer
+  memcpy(inputBuffer, inputPayload.c_str(), inputSize);
+
+  // Compress the input data
+  int compressResult = lzo1x_1_compress(
+    inputBuffer, inputSize,             // Input data and size
+    compressedBuffer, &compressedSize,  // Output buffer and compressed size
+    workMem                             // Working memory
+  );
+
+  if (compressResult == LZO_E_OK) {
+    Serial.println(F("Compression successful!"));
+    Serial.print(F("Original size: "));
+    Serial.println(inputSize);
+    Serial.print(F("Compressed size: "));
+    Serial.println(compressedSize);
+  } else {
+    Serial.println(F("Compression failed!"));
+  }
+
+  // Post the compressed data to Ntfy
+  PostToNtfy(compressedBuffer, compressedSize);
+
+  // Clear compressedBuffer to reset any old data
+  memset(compressedBuffer, 0, compressedSize);
+
+  // Free dynamically allocated memory after compression if needed
+#ifdef CONFIG_IDF_TARGET_ESP32
+  if (inputBuffer) free(inputBuffer);
+  if (compressedBuffer) free(compressedBuffer);
+#endif
+}
+
+
+//################################## ...and POST it to Ntfy ##################################################
+
+void PostToNtfy(uint8_t* compressedBuffer, lzo_uint compressedSize) {
+  Serial.println();
+  Serial.println(F("----------------------...sending JSON to client----------------------"));
 
   String ntfyUrlStr = "http://" + String(ntfyUrl) + "/" + String(ntfyTopic) + topic2;
   Serial.println(ntfyUrlStr);
@@ -656,4 +808,12 @@ void PostToNtfy() {
   }
 
   http.end();
+}
+
+// Function to apply inversion logic
+int applyInversion(int value) {
+  if (invert) {
+    return 1024 - value;  // Invert the brightness
+  }
+  return value;  // Return brightness as is
 }
