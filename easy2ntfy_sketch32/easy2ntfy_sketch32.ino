@@ -14,11 +14,11 @@
 #include <ArduinoJson.h>          // [7.3.0] JSON Handling: https://github.com/bblanchon/ArduinoJson
 #include <WebSockets2_Generic.h>  // [1.13.2]WebSocket Library: https://github.com/khoih-prog/WebSockets2_Generic
 #include <base64.h>
-#include <minilzo.h>              //MiniLZO [2.10] Compression: https://www.oberhumer.com/opensource/lzo/
+#include <minilzo.h>  //MiniLZO [2.10] Compression: https://www.oberhumer.com/opensource/lzo/
 
 // Compression Parameters
 #define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)                                      // Compression working memory size
-#define INPUT_BUFFER_SIZE 20480                                                   // Input buffer size
+#define INPUT_BUFFER_SIZE 15000                                                   // Input buffer size
 #define OUTPUT_BUFFER_SIZE (INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size
 
 #ifdef CONFIG_IDF_TARGET_ESP32
@@ -30,6 +30,7 @@
 uint8_t inputBuffer[INPUT_BUFFER_SIZE];
 uint8_t compressedBuffer[OUTPUT_BUFFER_SIZE];
 #endif
+
 // Debugging Settings for WebSockets
 #define DEBUG_WEBSOCKETS_PORT Serial  // Set debug port
 #define _WEBSOCKETS_LOGLEVEL_ 1       // Debug Level (0 to 4)
@@ -108,19 +109,20 @@ char ESPeasyIP[16] = "0.0.0.0";
 char ntfyUrl[80] = "ntfy.envs.net";
 char ntfyTopic[80] = "";
 char ledPinStr[4] = "2";
-const char* version = "<H1>EASY2NTFY_" ESP_BOARD " " ESP2NTFY_VERSION "</H1>";
+const char* version = "<p align=\"right\"><small>EASY2NTFY_" ESP_BOARD " " ESP2NTFY_VERSION "</small></p>";
 
 char customHtml_checkbox_inverted[50] = "type=\"checkbox\"";
 //char ntfyTag[80] = "1234";
 //char output[2] = "5";
 
 // WiFiManager Custom Parameters
-WiFiManagerParameter custom_text(version);
+
 WiFiManagerParameter custom_ESPeasyIP("ESPeasyIP", "ESPeasyIP", ESPeasyIP, 40);
 WiFiManagerParameter custom_ntfyUrl("ntfyUrl", "Url to ntfy server", ntfyUrl, 80);
 WiFiManagerParameter custom_ntfyTopic("ntfyTopic", "Topic", ntfyTopic, 80);
 WiFiManagerParameter custom_ledPin("ledPin", "LED pin", ledPinStr, 4);  // Use the char array
 WiFiManagerParameter custom_iverted_checkbox("invert", "Invert the LED", "T", 2, customHtml_checkbox_inverted, WFM_LABEL_AFTER);
+WiFiManagerParameter custom_text(version);
 
 //WiFiManagerParameter custom_ntfyTag("ntfyTag", "Shared Secret", ntfyTag, 80);
 
@@ -138,7 +140,9 @@ void setup() {
   // Initialize Serial Communication
   Serial.begin(115200);
   delay(3000);  // Wait for 3 seconds
-  Serial.println(F("Version: easy2ntfy32_1.0"));
+  Serial.print(F("Version: EASY2NTFY_"));
+  Serial.println(ESP_BOARD " " ESP2NTFY_VERSION);
+  Serial.println();
   Serial.println(F("Setup mode..."));
 
   // Initialize LED pin
@@ -373,7 +377,7 @@ void parseWsMessage() {
   Serial.println(!notkilled);
 
   // Print separator for debugging
-  Serial.println(F("---------------------------------------------------------------------"));  
+  Serial.println(F("---------------------------------------------------------------------"));
 }
 
 void splitCommand(const String& command) {
@@ -413,12 +417,13 @@ void onEventsCallback(WebsocketsEvent event, String data) {
 //Needs to be called only in the setup void.
 void setupDeviceWM() {
   WiFi.setHostname(newHostname);
-  wm.addParameter(&custom_text);
+
   wm.addParameter(&custom_ESPeasyIP);
   wm.addParameter(&custom_ntfyUrl);
   wm.addParameter(&custom_ntfyTopic);
   wm.addParameter(&custom_ledPin);
   wm.addParameter(&custom_iverted_checkbox);
+  wm.addParameter(&custom_text);
 
   wm.setSaveParamsCallback(saveConfigCallback);
 
