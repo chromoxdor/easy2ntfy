@@ -17,9 +17,9 @@
 #include <minilzo.h>  //MiniLZO [2.10] Compression: https://www.oberhumer.com/opensource/lzo/
 
 // Compression Parameters
-#define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)                                      // Compression working memory size
-#define INPUT_BUFFER_SIZE 15000                                                   // Input buffer size
-#define OUTPUT_BUFFER_SIZE (INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size
+#define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)  // Compression working memory size
+#define INPUT_BUFFER_SIZE 15000               // Input buffer size
+#define OUTPUT_BUFFER_SIZE 4500               //(INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define ESP_BOARD "32Classic"
@@ -736,11 +736,14 @@ void compressData(const String& inputPayload) {
 
   const size_t inputSize = inputPayload.length();
 
+  Serial.print(F("Total Memory Needed: "));
+  Serial.println(inputSize + WORK_MEM_SIZE + OUTPUT_BUFFER_SIZE);
+  Serial.print(F("          Free Heap: "));
+  Serial.println(ESP.getFreeHeap());
   // Check if there is enough free memory to proceed with compression
   if (ESP.getFreeHeap() < (inputSize + WORK_MEM_SIZE + OUTPUT_BUFFER_SIZE)) {
-    // Not enough memory for compression
-    Serial.print(F("Free Heap: "));
-    Serial.println(ESP.getFreeHeap());
+    // Not enough memory for
+
     Serial.println(F("Not enough memory to compress the data. Skipping compression."));
     return;  // Exit if there is not enough memory
   }
