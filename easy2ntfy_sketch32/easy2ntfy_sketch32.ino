@@ -1,7 +1,7 @@
 //issue: topic including "." doesn#t work for websocket
 //esp32 [2.0.17] board defs
 // Required Libraries
-#define ESP2NTFY_VERSION "v1.0"
+#define ESP2NTFY_VERSION "v1.1"
 #include <FS.h>  // Needs to be included first to avoid crashes
 #include <SPIFFS.h>
 #include <NTPClient.h>
@@ -20,6 +20,7 @@
 #define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)  // Compression working memory size
 #define INPUT_BUFFER_SIZE 15000               // Input buffer size
 #define OUTPUT_BUFFER_SIZE 4500               //(INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size
+// from ntfy docs: 	Each message can be up to 4,096 bytes long. Longer messages are treated as attachments.
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define ESP_BOARD "32Classic"
@@ -79,7 +80,7 @@ String topic2 = "_json";  // Add this to the ntfy topic to create an extra chann
 
 // LED Variables
 int ledPin = 2;               // LED pin
-bool invert = false;          // Set to true if the LED is active LOW
+bool invert = true;           // Set to true if the LED is active LOW
 int ledState = LOW;           // LED state
 uint32_t previousMillis = 0;  // Last time LED was updated
 const long interval = 1000;   // Blink interval (milliseconds)
@@ -109,19 +110,19 @@ char ESPeasyIP[16] = "0.0.0.0";
 char ntfyUrl[80] = "ntfy.envs.net";
 char ntfyTopic[80] = "";
 char ledPinStr[4] = "2";
-const char* version = "<p align=\"right\"><small>EASY2NTFY_" ESP_BOARD " " ESP2NTFY_VERSION "</small></p>";
 
-char customHtml_checkbox_inverted[50] = "type=\"checkbox\"";
-//char ntfyTag[80] = "1234";
-//char output[2] = "5";
+
+const char* version = "<p align=\"right\"><small>EASY2NTFY_" ESP_BOARD " " ESP2NTFY_VERSION "</small></p>";
+char customHtml_checkbox_inverted[70] = "type=\"number\" min=\"0\" max=\"1\" step=\"1\" style=\"width: 5ch;\"";
+
 
 // WiFiManager Custom Parameters
-
 WiFiManagerParameter custom_ESPeasyIP("ESPeasyIP", "ESPeasyIP", ESPeasyIP, 40);
-WiFiManagerParameter custom_ntfyUrl("ntfyUrl", "Url to ntfy server", ntfyUrl, 80);
+WiFiManagerParameter custom_ntfyUrl("ntfyUrl", "URL to ntfy server", ntfyUrl, 80);
 WiFiManagerParameter custom_ntfyTopic("ntfyTopic", "Topic", ntfyTopic, 80);
-WiFiManagerParameter custom_ledPin("ledPin", "LED pin", ledPinStr, 4);  // Use the char array
-WiFiManagerParameter custom_iverted_checkbox("invert", "Invert the LED", "T", 2, customHtml_checkbox_inverted, WFM_LABEL_AFTER);
+WiFiManagerParameter custom_ledPinStr("ledPinStr", "LED pin", ledPinStr, 4);  // Use the char array
+//WiFiManagerParameter custom_inverted_checkbox("invert", "Invert the LED", invertValue, 2, customHtml_checkbox_inverted, WFM_LABEL_AFTER);
+WiFiManagerParameter custom_inverted_checkbox("invert", "Invert LED (0=default 1=inverted)", invert ? "1" : "0", 2, customHtml_checkbox_inverted);
 WiFiManagerParameter custom_text(version);
 
 //WiFiManagerParameter custom_ntfyTag("ntfyTag", "Shared Secret", ntfyTag, 80);
@@ -188,45 +189,40 @@ void setup() {
 
           // Validate and extract ESPeasyIP
           if (json.containsKey("ESPeasyIP")) {
-            strncpy(ESPeasyIP, json["ESPeasyIP"], sizeof(ESPeasyIP) - 1);
-            ESPeasyIP[sizeof(ESPeasyIP) - 1] = '\0';
+            strcpy(ESPeasyIP, json["ESPeasyIP"]);
           } else {
             Serial.println(F("Missing field: ESPeasyIP"));
           }
 
           // Validate and extract ntfyUrl
           if (json.containsKey("ntfyUrl")) {
-            strncpy(ntfyUrl, json["ntfyUrl"], sizeof(ntfyUrl) - 1);
-            ntfyUrl[sizeof(ntfyUrl) - 1] = '\0';
+            strcpy(ntfyUrl, json["ntfyUrl"]);
           } else {
             Serial.println(F("Missing field: ntfyUrl"));
           }
 
           // Validate and extract ntfyTopic
           if (json.containsKey("ntfyTopic")) {
-            strncpy(ntfyTopic, json["ntfyTopic"], sizeof(ntfyTopic) - 1);
-            ntfyTopic[sizeof(ntfyTopic) - 1] = '\0';
+            strcpy(ntfyTopic, json["ntfyTopic"]);
           } else {
             Serial.println(F("Missing field: ntfyTopic"));
           }
 
           //Validate and extract ledPin
-          if (json.containsKey("ledPin")) {
-            strncpy(ledPinStr, json["ledPin"], sizeof(ledPinStr) - 1);
-            ledPinStr[sizeof(ledPinStr) - 1] = '\0';
+          if (json.containsKey("ledPinStr")) {
+            strcpy(ledPinStr, json["ledPinStr"]);
             ledPin = atoi(ledPinStr);
             if (ledPin == 0 && strcmp(ledPinStr, "0") != 0) {
               Serial.println(F("Invalid LED pin value"));
             }
           } else {
-            Serial.println(F("Missing field: ledPin"));
+            Serial.println(F("Missing field: ledPinStr"));
           }
 
           if (json.containsKey("invert")) {
-            invert = json["invert"].as<bool>();  // Parse directly as boolean
+            invert = (strcmp(json["invert"], "1") == 0);
           } else {
             // If the key doesn't exist or is invalid, set a default
-            Serial.println(F("No 'invert' key found, using default (false)"));
             invert = false;  // Default to false if the key doesn't exist or is invalid
           }
 
@@ -238,7 +234,7 @@ void setup() {
           Serial.print(F("topic:"));
           Serial.println(ntfyTopic);
           Serial.print(F("LEDPin:"));
-          Serial.println(ledPin);
+          Serial.println(ledPinStr);
           Serial.print(F("InvertedLED?:"));
           Serial.println(invert);
 
@@ -421,8 +417,8 @@ void setupDeviceWM() {
   wm.addParameter(&custom_ESPeasyIP);
   wm.addParameter(&custom_ntfyUrl);
   wm.addParameter(&custom_ntfyTopic);
-  wm.addParameter(&custom_ledPin);
-  wm.addParameter(&custom_iverted_checkbox);
+  wm.addParameter(&custom_ledPinStr);
+  wm.addParameter(&custom_inverted_checkbox);
   wm.addParameter(&custom_text);
 
   wm.setSaveParamsCallback(saveConfigCallback);
@@ -479,9 +475,9 @@ void loopDeviceWM() {
     strcpy(ESPeasyIP, custom_ESPeasyIP.getValue());
     strcpy(ntfyUrl, custom_ntfyUrl.getValue());
     strcpy(ntfyTopic, custom_ntfyTopic.getValue());
-    strcpy(ledPinStr, custom_ledPin.getValue());
+    strcpy(ledPinStr, custom_ledPinStr.getValue());
     ledPin = atoi(ledPinStr);
-    invert = (custom_iverted_checkbox.getValue() == "T");
+    invert = (strcmp(custom_inverted_checkbox.getValue(), "1") == 0);
 
     Serial.print(F("IP:"));
     Serial.println(ESPeasyIP);
@@ -493,15 +489,15 @@ void loopDeviceWM() {
     Serial.println(ledPin);
     Serial.print(F("InvertedLED?:"));
     Serial.println(invert);
+
     // Serial.println(ntfyTag);  // Keep this commented out if not in use
     Serial.println(F("saving config"));
     DynamicJsonDocument json(1024);
     json["ESPeasyIP"] = ESPeasyIP;
     json["ntfyUrl"] = ntfyUrl;
     json["ntfyTopic"] = ntfyTopic;
-    itoa(ledPin, ledPinStr, 10);
-    json["ledPin"] = ledPinStr;
-    json["invert"] = invert ? 1 : 0;
+    json["ledPinStr"] = ledPinStr;
+    json["invert"] = invert ? "1" : "0";
 
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile) {
@@ -550,6 +546,8 @@ void loop() {
   wm.getParameters()[0]->setValue(ESPeasyIP, 40);
   wm.getParameters()[1]->setValue(ntfyUrl, 80);
   wm.getParameters()[2]->setValue(ntfyTopic, 80);
+  wm.getParameters()[3]->setValue(ledPinStr, 4);
+  wm.getParameters()[4]->setValue(invert ? "1" : "0", 2);
 
   //------------------LED--------------------------------
   // Handle LED blinking if there's a connection issue (blinkLed is true)
