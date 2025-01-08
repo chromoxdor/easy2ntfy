@@ -1,7 +1,7 @@
 //issue: topic including "." doesn#t work for websocket
 //esp32 [2.0.17] board defs
 // Required Libraries
-#define ESP2NTFY_VERSION "v1.1"
+#define ESP2NTFY_VERSION "v1.2"
 #include <FS.h>  // Needs to be included first to avoid crashes
 #include <SPIFFS.h>
 #include <NTPClient.h>
@@ -67,9 +67,10 @@ const char* sendOK;
 const char* toESPcommand;
 uint32_t receiveTime;
 bool receiveLoop = false;
-bool connected = false;
+bool connectedToWS = false;
 bool notkilled = true;
 bool doingItOnce = true;
+bool wasConnected = false;
 
 // Flag for Saving Data
 bool shouldSaveConfig = false;
@@ -266,16 +267,16 @@ void setup() {
   receiveTopic = ntfyTopic;
   Serial.print(F("Connecting to WebSocket on topic: "));
   Serial.println(receiveTopic);
-
-  bool connected = ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
-  if (connected) {
-    Serial.println(F("WebSocket Connected!"));
-    // Optionally send a message after connecting
-    // String WS_msg = String("Hello to Server from ");
-    // ws.send(WS_msg);
-  } else {
-    Serial.println(F("WebSocket Connection Failed!"));
-  }
+  connectedToWS = false;
+  // bool connectedToWS = ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
+  // if (connectedToWS) {
+  //   Serial.println(F("WebSocket Connected!"));
+  //   // Optionally send a message after connecting
+  //   // String WS_msg = String("Hello to Server from ");
+  //   // ws.send(WS_msg);
+  // } else {
+  //   Serial.println(F("WebSocket Connection Failed!"));
+  // }
 
   // Send WebSocket Ping
   ws.ping();
@@ -398,6 +399,7 @@ void onEventsCallback(WebsocketsEvent event, String data) {
   } else if (event == WebsocketsEvent::ConnectionClosed) {
     Serial.println(F("Connection Closed"));
     blinkLed = true;
+    connectedToWS = false;
   } else if (event == WebsocketsEvent::GotPing) {
     Serial.println(F("Got a Ping!"));
   } else if (event == WebsocketsEvent::GotPong) {
@@ -412,6 +414,7 @@ void onEventsCallback(WebsocketsEvent event, String data) {
 
 //Needs to be called only in the setup void.
 void setupDeviceWM() {
+  Serial.println(F("setting up wifimanager"));
   WiFi.setHostname(newHostname);
 
   wm.addParameter(&custom_ESPeasyIP);
@@ -423,12 +426,13 @@ void setupDeviceWM() {
 
   wm.setSaveParamsCallback(saveConfigCallback);
 
-  wm.setConfigPortalBlocking(blockWM);
   std::vector<const char*> menu = { "wifi", "info", "param", "sep", "restart", "exit" };
   wm.setMenu(menu);
   wm.setConfigPortalTimeout(180);
+  wm.setConfigPortalBlocking(blockWM);
   wm.setClass("invert");
-  // wifiManager.resetSettings();
+  wm.setWiFiAutoReconnect(true);
+
   if (wm.autoConnect("easy2ntfy", "configesp")) {
     // if you get here you have connected to the WiFi
     Serial.println(F("Connected to wifi network!"));
@@ -438,9 +442,7 @@ void setupDeviceWM() {
   } else {
     Serial.println(F("Non blocking config portal running!"));
   }
-  // call the code down to activate wifi so users can configure the device, event if it's connected to the local network
-  // wm.startConfigPortal("IOT_Device");
-  //
+
   server.onNotFound(handleNotFound);
 }
 
@@ -523,11 +525,34 @@ void loop() {
   // Necessary for WiFi Manager to handle WiFi connection management
   loopDeviceWM();
 
-  // Check for WiFi connection every 30 seconds
-  if (WiFi.status() != WL_CONNECTED && (millis() - previous_time >= 30000)) {
-    Serial.println(F("Reconnecting to WiFi network"));
-    WiFi.reconnect();
-    previous_time = millis();  // Update the previous time for reconnection
+  //Check for WiFi connection and WS connection
+  if (WiFi.status() != WL_CONNECTED && !wasConnected) {  // run only on boot once again when no ap is there
+                                                         // (somehow autoreconnect only works when run twice and inital connect on boot was not successful)
+    wasConnected = true;
+    Serial.println();
+    Serial.println(F("---booted and no WiFI? run WiFiManager once again for Autoreconnect---"));
+    if (wm.autoConnect("easy2ntfy", "configesp")) {
+      // if you get here you have connected to the WiFi
+      Serial.println(F("Connected to wifi network!"));
+      //wm.setPreSaveConfigCallback(saveConfigCallback);
+      WiFi.mode(WIFI_STA);
+      wm.startWebPortal();
+    } else {
+      Serial.println(F("Non blocking config portal running!"));
+    }
+  } else if (WiFi.status() == WL_CONNECTED) {
+    wasConnected = true;
+    if (!connectedToWS && (millis() - previous_time >= 5000)) {
+      Serial.println(F("-----------------------connecting to WS..............................."));
+      receiveTopic = ntfyTopic;
+      connectedToWS = ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
+      previous_time = millis();  // Update the previous time for reconnection
+      if (connectedToWS) {
+        Serial.println(F("WebSocket Connected!"));
+      } else {
+        Serial.println(F("WebSocket Connection Failed!"));
+      }
+    }
   }
 
   // WebSockets - Poll for incoming messages if available
@@ -554,16 +579,8 @@ void loop() {
   if (blinkLed) {
     if (millis() - previousMillis >= interval) {
       previousMillis = millis();  // Update the previous time of LED blink
-      Serial.println(F("----------------------reconnecting..................................."));
-      // Attempt to reconnect WebSocket if LED is blinking
-      receiveTopic = ntfyTopic;
-      ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
-      // if (!ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws")) {
-      //   Serial.println("Failed to reconnect WebSocket");
-      // }
-
       // Toggle LED state (blink LED on/off)
-      ledState = (ledState == 900) ? 1024 : 900;      // Alternate between two states
+      ledState = (ledState == 1) ? 1024 : 1;          // Alternate between two states
       analogWrite(ledPin, applyInversion(ledState));  // Update LED state
     }
   }
