@@ -70,16 +70,17 @@ Sometimes easy2ntfy hangs and with it the serial connection which makes it hard 
 
 1. Compile and upload Arduino sketch or flash the binary file to an esp8266.  
 2. Connect to Access Point "easy2ntfy" (password: "configesp") and open 192.168.4.1 in a browser.  
-3. Enter your WiFi network credentials .  
-4. Enter ntfy-channel, ntfy-server, default-node-IP (other public ntfy server can be found here: [https://docs.ntfy.sh/integrations/] 
+3. Enter your WiFi network credentials .
+4. Open the "Setup" page
+5. Enter ntfy-channel, ntfy-server, default-node-IP (other public ntfy server can be found here: [https://docs.ntfy.sh/integrations/] 
  - Unfortunately there are only two public server that work with easy2ntfy so far: ntfy.envs.net	and ntfy.mzte.de
  - the WiFiManager is always running. By entering the local ip you can always access and change the credentials and parameter
 5. Add a channel to easyfetch: [https://raw.githack.com/chromoxdor/easy ... fetch.html](https://raw.githack.com/chromoxdor/easy2ntfy/main/fetch.html)  
   
 **Setting up a channel:**
 
+<img width="397" alt="Setup" src="https://github.com/user-attachments/assets/0b5e7429-01b9-4ba3-87dd-45afaead6129" />
 
-<img width="325" alt="config_wifi" src="https://user-images.githubusercontent.com/33860956/224155821-10224a8e-aa1e-441b-b980-1a5fa1b5f7a3.png">
 
 **Adding a channel in the web application:**
 
