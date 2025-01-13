@@ -68,7 +68,7 @@ body {
     color: white;
 }
 
-#allList>div>*:not(.bigNum) {
+#allList>div>:not(.bigNum) {
     box-shadow: 0 0 10px 1px rgb(0 0 0 / 15%);
 }
 
@@ -229,7 +229,7 @@ button:active {
     z-index: 1;
     border-radius: 5px;
     width: 100%;
-    top: 0px;
+    top: 0;
     mix-blend-mode: overlay;
     pointer-events: none;
     background: #8a8787;
@@ -293,8 +293,8 @@ button:active {
 .slTimeText {
     position: absolute;
     right: 4.2px;
-    bottom: 2.2px;
-    font-weight: normal;
+    bottom: 0;
+    font-weight: 400;
 }
 
 .sensorset:not(.btnTile) {
@@ -399,14 +399,17 @@ input[type=number] {
 }
 
 .even {
+    
+    display: flex;
     word-spacing: -2px;
     white-space: nowrap;
-    align-self: self-end;
+    height: 20px;
+    align-items: center
 }
 
 .cron {
     padding-bottom: 1pt;
-    text-align: end;
+    text-align: end
 }
 
 .vInputs::placeholder {
@@ -418,7 +421,7 @@ input[type=number] {
     bottom: 0;
     z-index: 2;
     width: 100%;
-    position: fixed;
+    position: fixed
 }
 
 .open {
@@ -452,6 +455,7 @@ input[type=number] {
     display: flex;
     flex-direction: column;
     align-items: center;
+    cursor: pointer;
     justify-content: center;
     color: white;
 }
@@ -460,12 +464,12 @@ input[type=number] {
     display: grid;
     justify-content: start;
     grid-template-columns: 25px auto;
-    align-items: end;
+    align-items: end
 }
 
 .numberUnit {
     font-size: 10px;
-    color: #818181;
+    color: #818181
 }
 
 #menueList div:hover {
@@ -473,7 +477,7 @@ input[type=number] {
 }
 
 .nc {
-    word-break: break-all;
+    word-break: break-all
 }
 
 .sideNbtn {
@@ -486,11 +490,11 @@ input[type=number] {
 
 #openSys {
     left: 20px;
-    width: 40px;
+    width: 40px
 }
 
 #closeBtn {
-    right: 20px;
+    right: 20px
 }
 
 #menueList {
@@ -524,12 +528,12 @@ input[type=number] {
     top: 5px;
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly;
+    justify-content: space-evenly
 }
 
 .syspair {
     display: flex;
-    justify-content: flex-start;
+    justify-content: flex-start
 }
 
 .syspair>div {
@@ -539,13 +543,13 @@ input[type=number] {
 .syspair div:nth-child(1) {
     text-align: end;
     width: 35%;
-    padding-right: 5px;
+    padding-right: 5px
 }
 
 .menueWrap {
     transition: .5s;
     height: 185px;
-    flex-shrink: 999;
+    flex-shrink: 999
 }
 
 .bigSpan:nth-child(1) {
@@ -683,7 +687,7 @@ button.remove {
     }
 
     #opener {
-        height: 40px;
+        height: 40px
     }
 }
 
@@ -692,37 +696,35 @@ button.remove {
 @media screen and (max-width: 450px) {
     #allList {
         grid-row-gap: 5px;
-        min-width: unset;
+        min-width: unset
     }
 
     #opener {
-        height: 40px;
+        height: 40px
     }
 
     #framie {
-        padding-bottom: 40px;
+        padding-bottom: 40px
     }
 
     .allExtra {
-        grid-row-gap: 2.5px !important;
+        grid-row-gap: 2.5px !important
     }
 
     #bigNumber {
-        grid-row-gap: 5px;
+        grid-row-gap: 5px
     }
 
     #sliderList {
-        gap: 5px 1vh;
+        gap: 5px 1vh
     }
 
     #sensorList {
-        gap: 5px;
-
+        gap: 5px
     }
 
     .bigNum {
         gap: 5px;
-        width: 50%;
     }
 
     .sensors {
