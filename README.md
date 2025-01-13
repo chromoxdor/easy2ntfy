@@ -33,8 +33,6 @@ A channel like "test" is likely to be selected more often and anyone can send or
 E.g.: bad channel name: "test"  
 good channel name: "Test_123-456_tesT"  
 
-<img width="250" alt="readonly0" src="https://user-images.githubusercontent.com/33860956/224155545-500d587c-1db5-42c7-95f4-aa1cc09ec0d2.png">
-
 
 ## **Limitations:**
 
@@ -75,6 +73,7 @@ Filtering out unnecessary JSON by esasy2ntfy shortens the output but a node (esp
 **Setting up a channel:**
 
 <img width="400" alt="Bildschirmfoto 2025-01-13 um 19 31 37" src="https://github.com/user-attachments/assets/29d58eeb-ba38-468a-9832-4b714efda337" />
+
 
 **Adding a channel in the web application:**
 
