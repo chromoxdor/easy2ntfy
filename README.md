@@ -27,12 +27,11 @@ websocket. From there the message is parsed and send to the ESPeasy-node.
  
 
 ## **Security concerns:**
-
-The public instances of ntfy have no authentication, which means everyone can listen to a channel.  
-Since the channel name is needed to read and send messages from and to ESPeasy it is important to choose a channel name which is not easy to guess. (the channel name acts as a kind of password)  
+The password is only there to encrypt the data so that no one can read or tamper with the application. It doesn't protect against sophisticated attacks such as cross-site scripting or physical access to your device where the password and channel data can be accessed.  
+Since the channel name is needed to read and send messages to and from ESPeasy, it is important to choose a channel name that is not easy to guess. (The channel name also acts as a kind of password).  
+A channel like "test" is likely to be selected more often and anyone can send or receive messages, which increases the total amount of messages that can be sent at any given time. (See **Limitations**)
 E.g.: bad channel name: "test"  
 good channel name: "Test_123-456_tesT"  
-For those who want to give it a try but suddenly feel uncomfortable with it, can enter the read-only mode by long pressing the channel in the web-application. Easy2ntfy will now block any command until it is restarted (the channel is now displayed in red):
 
 <img width="250" alt="readonly0" src="https://user-images.githubusercontent.com/33860956/224155545-500d587c-1db5-42c7-95f4-aa1cc09ec0d2.png">
 
@@ -51,39 +50,33 @@ Filtering out unnecessary JSON by esasy2ntfy shortens the output but a node (esp
   
 ## **Todo:**
 
-
-- authentication options for self hosted server  
-- ~~add notification when JSON message gets to long~~  
-- ~~display saved parameters in WiFiManager if available (instead of default values)~~
 - maybe show amount of daily send messages  
   
   
 
 ## **Known issues:**
 
-  
-Sometimes easy2ntfy hangs and with it the serial connection which makes it hard for me to debug. For now a reboot solves the issue. 
-(This did not happen for a long time now since a made some changes in terms of memory usage...maybe it is resolved)
+- none for now
 
 
 ## **How to use:**
 
-1. Compile and upload Arduino sketch or flash the binary file to an esp8266.  
-2. Connect to Access Point "easy2ntfy" (password: "configesp") and open 192.168.4.1 in a browser.  
+1. Compile and upload Arduino sketch or flash the binaries file to an ESP32 Classic, ESP32 C3 or ESP32 S3.  
+2. Connect to Access Point "easy2ntfy" (password: "configesp") and open 192.168.4.1 in a browser (if the captive portal doesn't open automatically).  
 3. Enter your WiFi network credentials .
 4. Open the "Setup" page
-5. Enter ntfy-channel, ntfy-server, default-node-IP (other public ntfy server can be found here: [https://docs.ntfy.sh/integrations/] 
+ -  Enter ntfy-channel, ntfy-server, default-node-IP (other public ntfy server can be found here: https://docs.ntfy.sh/integrations/)
+ - Choose a password and your led pin. Hit save!
  - Unfortunately there are only two public server that work with easy2ntfy so far: ntfy.envs.net	and ntfy.mzte.de
  - the WiFiManager is always running. By entering the local ip you can always access and change the credentials and parameter
-5. Add a channel to easyfetch: [https://raw.githack.com/chromoxdor/easy ... fetch.html](https://raw.githack.com/chromoxdor/easy2ntfy/main/fetch.html)  
+5. Add a channel to easyfetch here: [https://raw.githack.com/chromoxdor/easy ... fetch.html](https://raw.githack.com/chromoxdor/easy2ntfy/main/fetch.html)
+ - use the same parameter you choose in the WiFiManager
   
 **Setting up a channel:**
 
-<img width="397" alt="Setup" src="https://github.com/user-attachments/assets/0b5e7429-01b9-4ba3-87dd-45afaead6129" />
-
+<img width="400" alt="Bildschirmfoto 2025-01-13 um 19 31 37" src="https://github.com/user-attachments/assets/29d58eeb-ba38-468a-9832-4b714efda337" />
 
 **Adding a channel in the web application:**
 
-![config web](https://user-images.githubusercontent.com/33860956/224155843-41506f23-23c0-45be-bc61-223ff99cbbe0.gif)
-
+![easy2ntfyApp](https://github.com/user-attachments/assets/f016e695-f71d-49ed-a1df-f14110422013)
 
