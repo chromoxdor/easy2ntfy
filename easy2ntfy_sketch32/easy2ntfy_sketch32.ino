@@ -28,7 +28,7 @@ byte aes_iv2[16];
 
 // Compression Parameters
 #define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)  // Compression working memory size
-#define INPUT_BUFFER_SIZE 20000               // Input buffer size
+#define INPUT_BUFFER_SIZE 15000               // Input buffer size
 #define OUTPUT_BUFFER_SIZE 4500               //(INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size \
                                               // from ntfy docs: 	Each message can be up to 4,096 bytes long. Longer messages are treated as attachments.
 
@@ -475,7 +475,7 @@ void splitCommand(const String& command) {
 //############################################# Decryption ##########################################
 const char* decodeMsg(const char* inputMsg) {
 
-  // Step 1: Decode Base64
+  // Decode Base64
   int base64DecodedLen = base64_dec_len(inputMsg, strlen(inputMsg));
   if (base64DecodedLen <= 16 || base64DecodedLen > OUTPUT_BUFFER_SIZE) {
     Serial.println(F("Invalid Base64-decoded length."));
