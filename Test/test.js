@@ -107,7 +107,7 @@ function generateChan() {
             } else {
                 btnselect = "";
             }
-            html5 += '<div class="channelItem"><button class="buttonUnit ' + btnselect + '" style="text-align: center;" onclick="setChannel(this,\'' + value + '\');"><div class="chanName" id="' + newkey + '">' + newkey + '</div><div class="channelName">' + valueSplit + '</div></button><button class="remove" onclick="delChan(\'' + key + '\',\'' + valueSplit + '\')">-</button></div>';
+            html5 += '<div class="channelItem"><button class="buttonUnit ' + btnselect + '" style="text-align: center;" onclick="setChannel(this,\'' + value + '\');"><div class="chanName" id="' + newkey + '">' + newkey + '</div><div class="channelName">' + valueSplit + '</div></button><button class="remove" onclick="delChan(\'' + key + '\',\'' + value + '\')">-</button></div>';
         }
     });
     if (html5) {
@@ -411,7 +411,6 @@ function fetchJson() {
     html1 = '';
     html2 = '';
     html3 = '';
-    dataT = [];
     let i = -1;
     unit = myJson.WiFi.Hostname;
     unitNr = myJson.System['Unit Number'];
@@ -532,7 +531,9 @@ function fetchJson() {
                                 if (kindN) { sensorName = sensorName + "|" + kindN };
                                 html += '<div class="btnTile ' + bS + htS1 + 'buttonClick(\'' + sensorName + '\', \'' + item.Value + '\')">' + htS2;
                             }
-                            else { wasUsed = false; }
+                            else if (itemN.includes("XI")) {
+                                html += '<div class="btnTile sensorset clickables ' + bS + '">' + htS2;
+                            }                            else { wasUsed = false; }
                         }
                         //dummy---------------------------------------------------------
                         if (sensor.TaskDeviceNumber == 33 && !(iN).includes("XX") && !(sensorName).includes("bigVal")) {
