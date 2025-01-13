@@ -9,6 +9,7 @@
         type="image/svg+xml">
     <link rel="stylesheet" href="test.css">
     <script src="test.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <title id="unitT"></title>
 </head>
 
@@ -25,7 +26,8 @@
                 <input type="text" id="channelNr" class="cInputs" name="channelNr" placeholder="Channel"
                     onkeydown="return /[\w_-]/i.test(event.key)"><br>
                 <input type="text" id="channelSrv" class="cInputs" name="channelNa"
-                    placeholder="Server (ntfy.envs.net)"><br>
+                    placeholder="Server (ntfy.envs.net)" onkeydown="return /[\w.]/i.test(event.key)"><br>
+                    <input type="password" id="passWord" class="cInputs" name="passWord" placeholder="Password" maxlength="16"><br>
                 <button onclick="submitChan()">Submit</button>
             </div>
             <div id="checkLocal">
