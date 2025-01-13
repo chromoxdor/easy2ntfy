@@ -52,11 +52,12 @@ var redSelection;
 var invisible = false;
 var switchLocal = true;
 var initalRun = true;
+var keyString = '';
 
 //#################################### channel & cookie handling ####################################
 function addChan() {
     if (document.getElementById('inputChannel').offsetHeight === 0) {
-        document.getElementById("inputChannel").style.height = "160px";
+        document.getElementById("inputChannel").style.height = "200px";
         document.getElementById('addBtn').classList.add("change");
         enterOnInputs()
     } else { closeAddChan() }
@@ -66,15 +67,17 @@ function closeAddChan() {
     document.getElementById('addBtn').classList.remove("change");
     document.getElementById("channelNa").value = "";
     document.getElementById("channelNr").value = "";
+    document.getElementById("passWord").value = "";
 }
 function submitChan() {
     chanName = document.getElementById("channelNa").value;
     chanNumber = document.getElementById("channelNr").value;
     chanServer = document.getElementById("channelSrv").value;
+    password = document.getElementById("passWord").value;
     if (!chanServer) { chanServer = "ntfy.envs.net" }
     if (chanName && chanNumber) {
         //document.cookie = "ntfy_" + chanName + "=" + chanServer + '/' + chanNumber + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
-        localStorage.setItem("ntfy_" + chanName, chanServer + '/' + chanNumber);
+        localStorage.setItem("ntfy_" + chanName, chanServer + '/' + chanNumber + ':' + password);
         document.getElementById("inputChannel").style.height = "0";
     }
     generateChan();
@@ -82,7 +85,6 @@ function submitChan() {
 }
 function generateChan() {
     selectedChan = false;
-    //cookieObj = str_obj(document.cookie);
     html5 = '';
     Object.entries(localStorage).forEach(entry => {
         const [key, value] = entry;
@@ -90,8 +92,9 @@ function generateChan() {
     });
     Object.entries(localStorage).forEach(entry => {
         const [key, value] = entry;
+        valueSplit = value.split(":")[0];
         if (key.includes("ntfy_")) {
-            newkey = key.split("_")[1];
+            newkey = key.split("_")[1]
             if (selectVal && value == selectVal) {
                 if (redSelection) {
                     btnselect = "chanBtnSelectRed"
@@ -99,10 +102,11 @@ function generateChan() {
                     btnselect = "chanBtnSelect";
                 }
                 selectedChan = true;
+                console.log("selectedChan: true for:" + newkey);
             } else {
                 btnselect = "";
             }
-            html5 += '<div class="channelItem"><button class="buttonUnit ' + btnselect + '" style="text-align: center;" onclick="setChannel(this);"><div class="chanName" id="' + newkey + '">' + newkey + '</div><div class="channelName">' + value + '</div></button><button class="remove" onclick="delChan(\'' + key + '\',\'' + value + '\')">-</button></div>';
+            html5 += '<div class="channelItem"><button class="buttonUnit ' + btnselect + '" style="text-align: center;" onclick="setChannel(this,\'' + value + '\');"><div class="chanName" id="' + newkey + '">' + newkey + '</div><div class="channelName">' + valueSplit + '</div></button><button class="remove" onclick="delChan(\'' + key + '\',\'' + valueSplit + '\')">-</button></div>';
         }
     });
     if (html5) {
@@ -126,6 +130,9 @@ function generateChan() {
         document.getElementById('channelList').innerHTML = "no channels added...";
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">Add a channel...\n(Click on the house symbol.)<pre>';
     };
+    document.getElementById("channelNr").addEventListener("input", function () {
+        this.value = this.value.replace(/[.:]/g, ""); // Remove . and :
+    });
     longPressB();
 }
 function str_obj(str) {
@@ -137,10 +144,12 @@ function str_obj(str) {
     }
     return result;
 }
-function setChannel(data) {
+function setChannel(data, value) {
+    console.log("Data:" + value);
     if (isittime) {
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">trying to connect...<pre>';
-        ntfyChannel = data.children[1].textContent;
+        ntfyChannel = value
+        console.log(ntfyChannel);
         //document.cookie = "*selectedChannel=" + ntfyChannel + "; expires=Fri, 31 Dec 9999 23:59:59 GMT;";
         localStorage.setItem("*selectedChannel", ntfyChannel);
         chanBtns = document.querySelectorAll(".buttonUnit");
@@ -204,6 +213,7 @@ function enterOnInputs() {
 }
 //#################################### ntfy handling ####################################
 
+
 async function fetchNtfy() {
     check();
     responseTime2 = Date.now();
@@ -216,9 +226,19 @@ async function fetchNtfy() {
     //cookieObj = str_obj(document.cookie);
     Object.entries(localStorage).forEach(entry => {
         const [key, value] = entry;
-        if (key == "*selectedChannel") { ntfyChannel = value };
+        if (key == "*selectedChannel") {
+            ntfyChannel = value.split(":")[0]; keyString = value.split(":")[1]
+            if (keyString) {
+                //console.log(keyString);
+                keyString = convertPassphraseToKey(keyString);
+            } else {
+                if (selectedChan) {
+                    alert("Please enter a password for the selected channel");
+                }
+            }
+        }
     });
-    console.log(ntfyChannel);
+    //console.log(ntfyChannel);
     clearTimeout(readyIV);
     if (ntfyChannel) {
         sendReady(1);
@@ -232,35 +252,40 @@ async function fetchNtfy() {
         eventSource.onmessage = (e) => {
             if (e.data.includes(ntfyChannel.split("/")[0] + "/file")) { alert("The json-message has become too long \nntfy can only handle messages <= 4096byte") }
             dataNtfy = JSON.parse(e.data);
+            dataNtfy = JSON.parse(e.data);
+
+            let dataNtfydeCompressed;
+
 
             //check if input is compressed or not
-           if (dataNtfy.message.includes("System")){
+            if (dataNtfy.message.includes("System")) {
                 console.log("Data is uncompressed...");
                 dataNtfydeCompressed = dataNtfy.message;
             } else {
-                //Decode Base64 and decompress--------------------------------------------------
-                console.log("Data is compressed...");
-                const binaryString = atob(dataNtfy.message);
-                console.log("Compressed Data Size:", binaryString.length);
+                //Decode AES -> Decode Base64 -> decompress LZH--------------------------------------------------
 
-                let uint8Array = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    uint8Array[i] = binaryString.charCodeAt(i);
+                console.log("Data is compressed...");
+
+                // Decrypt the binary data
+                const decryptedData = decryptData(dataNtfy.message, keyString);
+                let decryptedUint8Array = new Uint8Array(decryptedData);
+                let anObject = {
+                    inputBuffer: decryptedUint8Array,
+                    outputBuffer: null
                 }
 
-                anObject = {
-                    inputBuffer: uint8Array,
-                    outputBuffer: null
-                };
+                try {
+                    lzo1x.decompress(anObject);
+                    dataNtfydeCompressed = new TextDecoder().decode(anObject.outputBuffer);
+                } catch (e) {
+                    localStorage.setItem("*selectedChannel", "");
+                    selectedChan = false;
+                    eventSource.close();
+                    alert('Decompression failed! \nPlease check your password.');
+                    location.reload();
+                }
 
-                decomp1 = lzo1x.decompress(anObject);
-
-                dataNtfydeCompressed = new TextDecoder().decode(anObject.outputBuffer);
-                console.log("Decompressed Data Size:", dataNtfydeCompressed.length);
-
-                //------------------------------------------------------------------------------
             }
-
             if (dataNtfydeCompressed) {
                 clearTimeout(tryconnectIV);
                 //clearHtml();
@@ -289,7 +314,7 @@ async function fetchNtfy() {
                         }
                         else fetchJson()
                         responseTime2 = Date.now();
-                        console.log("received valid json data...");
+                        //console.log("received valid json data...");
                         clearTimeout(jsonAlarmIV);
                         jsonAlarmIV = setTimeout(jsonLimit, 90000);
                     } catch (e) {
@@ -1107,7 +1132,7 @@ function nodeChange(event) {
         /*nP = `http://${nInf.ip}/tools`;
         nP2 = `http://${nInf.ip}/devices`;*/
         jsonPath = window[nInf.ip];
-        console.log(unitNrdefault, nNr);
+        console.log(`Switching from unitNrdefault: ${unitNrdefault} to nNr: ${nNr}`);
         if (unitNrdefault == nNr) {
             console.log("replace");
             var url = document.location.href;
@@ -1271,8 +1296,13 @@ async function getUrl(url, title) {
         let controller = new AbortController();
         setTimeout(() => controller.abort(), 5000);
         try {
-            console.log('https://' + ntfyChannel + '?title=' + title + '&message=' + url)
-            response = await fetch('https://' + ntfyChannel + '?title=' + title + '&message=' + url, {
+
+            // Do not encode the base URL
+            message = 'https://' + ntfyChannel +
+                '?title=' + encodeURIComponent(title) +
+                '&message=' + (url ? encodeURIComponent(encryptData(url)) : '');
+            //console.log(encryptData(message));
+            response = await fetch(message, {
                 signal: controller.signal,
                 method: 'POST',
                 //mode:'no-cors',
@@ -1363,6 +1393,110 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 
+//----------------------------------------------------------------
+//----------------------------------------------------------------AES
 
-var lzo1x = function () { "use strict"; var t = new function () { this.blockSize = 131072, this.minNewSize = this.blockSize, this.maxSize = 0, this.OK = 0, this.INPUT_OVERRUN = -4, this.OUTPUT_OVERRUN = -5, this.LOOKBEHIND_OVERRUN = -6, this.EOF_FOUND = -999, this.ret = 0, this.buf = null, this.buf32 = null, this.out = new Uint8Array(262144), this.cbl = 0, this.ip_end = 0, this.op_end = 0, this.t = 0, this.ip = 0, this.op = 0, this.m_pos = 0, this.m_len = 0, this.m_off = 0, this.dv_hi = 0, this.dv_lo = 0, this.dindex = 0, this.ii = 0, this.jj = 0, this.tt = 0, this.v = 0, this.dict = new Uint32Array(16384), this.emptyDict = new Uint32Array(16384), this.skipToFirstLiteralFun = !1, this.returnNewBuffers = !0, this.setBlockSize = function (t) { return "number" == typeof t && !isNaN(t) && parseInt(t) > 0 && (this.blockSize = parseInt(t), !0) }, this.setOutputSize = function (t) { return "number" == typeof t && !isNaN(t) && parseInt(t) > 0 && (this.out = new Uint8Array(parseInt(t)), !0) }, this.setReturnNewBuffers = function (t) { this.returnNewBuffers = !!t }, this.applyConfig = function (i) { void 0 !== i && (void 0 !== i.outputSize && t.setOutputSize(i.outputSize), void 0 !== i.blockSize && t.setBlockSize(i.blockSize)) }, this.ctzl = function (t) { var i; return 1 & t ? i = 0 : (i = 1, 0 == (65535 & t) && (t >>= 16, i += 16), 0 == (255 & t) && (t >>= 8, i += 8), 0 == (15 & t) && (t >>= 4, i += 4), 0 == (3 & t) && (t >>= 2, i += 2), i -= 1 & t), i }, this.extendBuffer = function () { var t = new Uint8Array(this.minNewSize + (this.blockSize - this.minNewSize % this.blockSize)); t.set(this.out), this.out = t, this.cbl = this.out.length }, this.match_next = function () { this.minNewSize = this.op + 3, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.buf[this.ip++], this.t > 1 && (this.out[this.op++] = this.buf[this.ip++], this.t > 2 && (this.out[this.op++] = this.buf[this.ip++])), this.t = this.buf[this.ip++] }, this.match_done = function () { return this.t = 3 & this.buf[this.ip - 2], this.t }, this.copy_match = function () { this.t += 2, this.minNewSize = this.op + this.t, this.minNewSize > this.cbl && this.extendBuffer(); do { this.out[this.op++] = this.out[this.m_pos++] } while (--this.t > 0) }, this.copy_from_buf = function () { this.minNewSize = this.op + this.t, this.minNewSize > this.cbl && this.extendBuffer(); do { this.out[this.op++] = this.buf[this.ip++] } while (--this.t > 0) }, this.match = function () { for (; ;) { if (this.t >= 64) this.m_pos = this.op - 1 - (this.t >> 2 & 7) - (this.buf[this.ip++] << 3), this.t = (this.t >> 5) - 1, this.copy_match(); else if (this.t >= 32) { if (this.t &= 31, 0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 31 + this.buf[this.ip++] } this.m_pos = this.op - 1 - (this.buf[this.ip] >> 2) - (this.buf[this.ip + 1] << 6), this.ip += 2, this.copy_match() } else if (this.t >= 16) { if (this.m_pos = this.op - ((8 & this.t) << 11), this.t &= 7, 0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 7 + this.buf[this.ip++] } if (this.m_pos -= (this.buf[this.ip] >> 2) + (this.buf[this.ip + 1] << 6), this.ip += 2, this.m_pos === this.op) return this.state.outputBuffer = !0 === this.returnNewBuffers ? new Uint8Array(this.out.subarray(0, this.op)) : this.out.subarray(0, this.op), this.EOF_FOUND; this.m_pos -= 16384, this.copy_match() } else this.m_pos = this.op - 1 - (this.t >> 2) - (this.buf[this.ip++] << 2), this.minNewSize = this.op + 2, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos]; if (0 === this.match_done()) return this.OK; this.match_next() } }, this.decompress = function (t) { if (this.state = t, this.buf = this.state.inputBuffer, this.cbl = this.out.length, this.ip_end = this.buf.length, this.t = 0, this.ip = 0, this.op = 0, this.m_pos = 0, this.skipToFirstLiteralFun = !1, this.buf[this.ip] > 17) if (this.t = this.buf[this.ip++] - 17, this.t < 4) { if (this.match_next(), this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret } else this.copy_from_buf(), this.skipToFirstLiteralFun = !0; for (; ;) { if (this.skipToFirstLiteralFun) this.skipToFirstLiteralFun = !1; else { if (this.t = this.buf[this.ip++], this.t >= 16) { if (this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret; continue } if (0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 15 + this.buf[this.ip++] } this.t += 3, this.copy_from_buf() } if (this.t = this.buf[this.ip++], this.t < 16) { if (this.m_pos = this.op - 2049, this.m_pos -= this.t >> 2, this.m_pos -= this.buf[this.ip++] << 2, this.minNewSize = this.op + 3, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos], 0 === this.match_done()) continue; this.match_next() } if (this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret } return this.OK }, this._compressCore = function () { for (this.ip_start = this.ip, this.ip_end = this.ip + this.ll - 20, this.jj = this.ip, this.ti = this.t, this.ip += this.ti < 4 ? 4 - this.ti : 0, this.ip += 1 + (this.ip - this.jj >> 5); !(this.ip >= this.ip_end);)if (this.dv_lo = this.buf[this.ip] | this.buf[this.ip + 1] << 8, this.dv_hi = this.buf[this.ip + 2] | this.buf[this.ip + 3] << 8, this.dindex = ((17053 * this.dv_lo >>> 16) + 17053 * this.dv_hi + 6180 * this.dv_lo & 65535) >>> 2, this.m_pos = this.ip_start + this.dict[this.dindex], this.dict[this.dindex] = this.ip - this.ip_start, (this.dv_hi << 16) + this.dv_lo == (this.buf[this.m_pos] | this.buf[this.m_pos + 1] << 8 | this.buf[this.m_pos + 2] << 16 | this.buf[this.m_pos + 3] << 24)) { if (this.jj -= this.ti, this.ti = 0, this.v = this.ip - this.jj, 0 !== this.v) if (this.v <= 3) { this.out[this.op - 2] |= this.v; do { this.out[this.op++] = this.buf[this.jj++] } while (--this.v > 0) } else { if (this.v <= 18) this.out[this.op++] = this.v - 3; else { for (this.tt = this.v - 18, this.out[this.op++] = 0; this.tt > 255;)this.tt -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.tt } do { this.out[this.op++] = this.buf[this.jj++] } while (--this.v > 0) } if (this.m_len = 4, this.buf[this.ip + this.m_len] === this.buf[this.m_pos + this.m_len]) do { if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.ip + this.m_len >= this.ip_end) break } while (this.buf[this.ip + this.m_len] === this.buf[this.m_pos + this.m_len]); if (this.m_off = this.ip - this.m_pos, this.ip += this.m_len, this.jj = this.ip, this.m_len <= 8 && this.m_off <= 2048) this.m_off -= 1, this.out[this.op++] = this.m_len - 1 << 5 | (7 & this.m_off) << 2, this.out[this.op++] = this.m_off >> 3; else if (this.m_off <= 16384) { if (this.m_off -= 1, this.m_len <= 33) this.out[this.op++] = 32 | this.m_len - 2; else { for (this.m_len -= 33, this.out[this.op++] = 32; this.m_len > 255;)this.m_len -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.m_len } this.out[this.op++] = this.m_off << 2, this.out[this.op++] = this.m_off >> 6 } else { if (this.m_off -= 16384, this.m_len <= 9) this.out[this.op++] = 16 | this.m_off >> 11 & 8 | this.m_len - 2; else { for (this.m_len -= 9, this.out[this.op++] = 16 | this.m_off >> 11 & 8; this.m_len > 255;)this.m_len -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.m_len } this.out[this.op++] = this.m_off << 2, this.out[this.op++] = this.m_off >> 6 } } else this.ip += 1 + (this.ip - this.jj >> 5); this.t = this.ll - (this.jj - this.ip_start - this.ti) }, this.compress = function (t) { for (this.state = t, this.ip = 0, this.buf = this.state.inputBuffer, this.maxSize = this.buf.length + Math.ceil(this.buf.length / 16) + 64 + 3, this.maxSize > this.out.length && (this.out = new Uint8Array(this.maxSize)), this.op = 0, this.l = this.buf.length, this.t = 0; this.l > 20 && (this.ll = this.l <= 49152 ? this.l : 49152, !(this.t + this.ll >> 5 <= 0));)this.dict.set(this.emptyDict), this.prev_ip = this.ip, this._compressCore(), this.ip = this.prev_ip + this.ll, this.l -= this.ll; if (this.t += this.l, this.t > 0) { if (this.ii = this.buf.length - this.t, 0 === this.op && this.t <= 238) this.out[this.op++] = 17 + this.t; else if (this.t <= 3) this.out[this.op - 2] |= this.t; else if (this.t <= 18) this.out[this.op++] = this.t - 3; else { for (this.tt = this.t - 18, this.out[this.op++] = 0; this.tt > 255;)this.tt -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.tt } do { this.out[this.op++] = this.buf[this.ii++] } while (--this.t > 0) } return this.out[this.op++] = 17, this.out[this.op++] = 0, this.out[this.op++] = 0, this.state.outputBuffer = !0 === this.returnNewBuffers ? new Uint8Array(this.out.subarray(0, this.op)) : this.out.subarray(0, this.op), this.OK } }; return { setBlockSize: function (i) { return t.setBlockSize(i) }, setOutputEstimate: function (i) { return t.setOutputSize(i) }, setReturnNewBuffers: function (i) { t.setReturnNewBuffers(i) }, compress: function (i, s) { return void 0 !== s && t.applyConfig(s), t.compress(i) }, decompress: function (i, s) { return void 0 !== s && t.applyConfig(s), t.decompress(i) } } }();
+
+// Function to convert a string to a byte array
+function strToByteArray(str) {
+    const byteArray = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+        byteArray[i] = str.charCodeAt(i);
+    }
+    return byteArray;
+}
+
+//  ----------------------------------------------------------------AES encrypt
+function encryptData(inputText) {
+
+    // Convert input text to byte array
+    const inputByteArray = strToByteArray(inputText);
+
+    // Generate a random Initialization Vector (IV) for security
+    const iv2 = CryptoJS.lib.WordArray.random(16);
+
+    // const ivHex = iv2.toString(CryptoJS.enc.Hex);
+    // console.log("IV (Hex):", ivHex);
+
+    // Encrypt the text using AES with CBC mode and the secret key
+    const encrypted = CryptoJS.AES.encrypt(
+        inputText,
+        CryptoJS.enc.Utf8.parse(keyString),
+        {
+            iv: iv2,
+            padding: CryptoJS.pad.Pkcs7,
+            mode: CryptoJS.mode.CBC,
+        }
+    );
+    // Concatenate IV and ciphertext and encode in Base64 format
+    const encryptedBase64 = CryptoJS.enc.Base64.stringify(
+        iv2.concat(encrypted.ciphertext)
+    );
+    return encryptedBase64;
+};
+// ----------------------------------------------------------------AES decrypt
+function decryptData(inputText, keyString) {
+    try {
+        // Convert the input text from Base64 to a WordArray
+        let wordArray = CryptoJS.enc.Base64.parse(inputText);
+        let key = CryptoJS.enc.Utf8.parse(keyString);
+
+        // Slice the first 16 bytes for the IV
+        let iv = CryptoJS.lib.WordArray.create(wordArray.words.slice(0, 4), 16);
+        let cipherText = CryptoJS.lib.WordArray.create(wordArray.words.slice(4));
+
+        // Convert IV to byte array and print as string
+        // let ivByteArray = [];
+        // for (let i = 0; i < iv.words.length; i++) {
+        //     let word = iv.words[i];
+        //     ivByteArray.push((word >>> 24) & 0xFF);
+        //     ivByteArray.push((word >>> 16) & 0xFF);
+        //     ivByteArray.push((word >>> 8) & 0xFF);
+        //     ivByteArray.push(word & 0xFF);
+        // }
+        // ivByteArray = ivByteArray.slice(0, 16).map(byte => String.fromCharCode(byte)).join('');
+        // console.log('IV (Byte Array String):', ivByteArray);
+
+        // Decrypt the binary data
+        let decrypted = CryptoJS.AES.decrypt({ ciphertext: cipherText }, key, {
+            iv: iv
+        });
+
+        // Convert decrypted data to a Uint8Array
+        let byteArray = new Uint8Array(decrypted.sigBytes);
+        for (let i = 0; i < decrypted.sigBytes; i++) {
+            byteArray[i] = (decrypted.words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
+        }
+
+        // Print the byte array as a hexadecimal string
+        //console.log('Decrypted Byte Array Length:', byteArray.length);
+
+        return byteArray;
+    } catch (error) {
+        console.error('Decryption failed:', error);
+        throw error;
+    }
+}
+
+function convertPassphraseToKey(passphrase) {
+    let key = '';
+
+    if (passphrase.length < 16) {
+        // Repeat the passphrase to fill the key
+        while (key.length < 16) {
+            key += passphrase;
+        }
+        key = key.substring(0, 16); // Ensure the key is exactly 16 characters long
+    } else {
+        // Truncate or use the first 16 characters of the passphrase
+        key = passphrase.substring(0, 16);
+    }
+    return key;
+}
+
+
+
+
+
+var lzo1x = function () { "use strict"; var t = new function () { this.blockSize = 131072, this.minNewSize = this.blockSize, this.maxSize = 0, this.OK = 0, this.INPUT_OVERRUN = -4, this.OUTPUT_OVERRUN = -5, this.LOOKBEHIND_OVERRUN = -6, this.EOF_FOUND = -999, this.ret = 0, this.buf = null, this.buf32 = null, this.out = new Uint8Array(262144), this.cbl = 0, this.ip_end = 0, this.op_end = 0, this.t = 0, this.ip = 0, this.op = 0, this.m_pos = 0, this.m_len = 0, this.m_off = 0, this.dv_hi = 0, this.dv_lo = 0, this.dindex = 0, this.ii = 0, this.jj = 0, this.tt = 0, this.v = 0, this.dict = new Uint32Array(16384), this.emptyDict = new Uint32Array(16384), this.skipToFirstLiteralFun = !1, this.returnNewBuffers = !0, this.setBlockSize = function (t) { return "number" == typeof t && !isNaN(t) && parseInt(t) > 0 && (this.blockSize = parseInt(t), !0) }, this.setOutputSize = function (t) { return "number" == typeof t && !isNaN(t) && parseInt(t) > 0 && (this.out = new Uint8Array(parseInt(t)), !0) }, this.setReturnNewBuffers = function (t) { this.returnNewBuffers = !!t }, this.applyConfig = function (i) { void 0 !== i && (void 0 !== i.outputSize && t.setOutputSize(i.outputSize), void 0 !== i.blockSize && t.setBlockSize(i.blockSize)) }, this.ctzl = function (t) { var i; return 1 & t ? i = 0 : (i = 1, 0 == (65535 & t) && (t >>= 16, i += 16), 0 == (255 & t) && (t >>= 8, i += 8), 0 == (15 & t) && (t >>= 4, i += 4), 0 == (3 & t) && (t >>= 2, i += 2), i -= 1 & t), i }, this.extendBuffer = function () { var t = new Uint8Array(this.minNewSize + (this.blockSize - this.minNewSize % this.blockSize)); t.set(this.out), this.out = t, this.cbl = this.out.length }, this.match_next = function () { this.minNewSize = this.op + 3, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.buf[this.ip++], this.t > 1 && (this.out[this.op++] = this.buf[this.ip++], this.t > 2 && (this.out[this.op++] = this.buf[this.ip++])), this.t = this.buf[this.ip++] }, this.match_done = function () { return this.t = 3 & this.buf[this.ip - 2], this.t }, this.copy_match = function () { this.t += 2, this.minNewSize = this.op + this.t, this.minNewSize > this.cbl && this.extendBuffer(); do { this.out[this.op++] = this.out[this.m_pos++] } while (--this.t > 0) }, this.copy_from_buf = function () { this.minNewSize = this.op + this.t, this.minNewSize > this.cbl && this.extendBuffer(); do { this.out[this.op++] = this.buf[this.ip++] } while (--this.t > 0) }, this.match = function () { for (; ;) { if (this.t >= 64) this.m_pos = this.op - 1 - (this.t >> 2 & 7) - (this.buf[this.ip++] << 3), this.t = (this.t >> 5) - 1, this.copy_match(); else if (this.t >= 32) { if (this.t &= 31, 0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 31 + this.buf[this.ip++] } this.m_pos = this.op - 1 - (this.buf[this.ip] >> 2) - (this.buf[this.ip + 1] << 6), this.ip += 2, this.copy_match() } else if (this.t >= 16) { if (this.m_pos = this.op - ((8 & this.t) << 11), this.t &= 7, 0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 7 + this.buf[this.ip++] } if (this.m_pos -= (this.buf[this.ip] >> 2) + (this.buf[this.ip + 1] << 6), this.ip += 2, this.m_pos === this.op) return this.state.outputBuffer = !0 === this.returnNewBuffers ? new Uint8Array(this.out.subarray(0, this.op)) : this.out.subarray(0, this.op), this.EOF_FOUND; this.m_pos -= 16384, this.copy_match() } else this.m_pos = this.op - 1 - (this.t >> 2) - (this.buf[this.ip++] << 2), this.minNewSize = this.op + 2, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos]; if (0 === this.match_done()) return this.OK; this.match_next() } }, this.decompress = function (t) { const i = Date.now(); if (this.state = t, this.buf = this.state.inputBuffer, this.cbl = this.out.length, this.ip_end = this.buf.length, this.t = 0, this.ip = 0, this.op = 0, this.m_pos = 0, this.skipToFirstLiteralFun = !1, this.buf[this.ip] > 17) if (this.t = this.buf[this.ip++] - 17, this.t < 4) { if (this.match_next(), this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret } else this.copy_from_buf(), this.skipToFirstLiteralFun = !0; for (; ;) { if (Date.now() - i > 1e3) throw new Error("Decompression timed out"); if (this.skipToFirstLiteralFun) this.skipToFirstLiteralFun = !1; else { if (this.t = this.buf[this.ip++], this.t >= 16) { if (this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret; continue } if (0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 15 + this.buf[this.ip++] } this.t += 3, this.copy_from_buf() } if (this.t = this.buf[this.ip++], this.t < 16) { if (this.m_pos = this.op - 2049, this.m_pos -= this.t >> 2, this.m_pos -= this.buf[this.ip++] << 2, this.minNewSize = this.op + 3, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos], 0 === this.match_done()) continue; this.match_next() } if (this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret } return this.OK }, this._compressCore = function () { for (this.ip_start = this.ip, this.ip_end = this.ip + this.ll - 20, this.jj = this.ip, this.ti = this.t, this.ip += this.ti < 4 ? 4 - this.ti : 0, this.ip += 1 + (this.ip - this.jj >> 5); !(this.ip >= this.ip_end);)if (this.dv_lo = this.buf[this.ip] | this.buf[this.ip + 1] << 8, this.dv_hi = this.buf[this.ip + 2] | this.buf[this.ip + 3] << 8, this.dindex = ((17053 * this.dv_lo >>> 16) + 17053 * this.dv_hi + 6180 * this.dv_lo & 65535) >>> 2, this.m_pos = this.ip_start + this.dict[this.dindex], this.dict[this.dindex] = this.ip - this.ip_start, (this.dv_hi << 16) + this.dv_lo == (this.buf[this.m_pos] | this.buf[this.m_pos + 1] << 8 | this.buf[this.m_pos + 2] << 16 | this.buf[this.m_pos + 3] << 24)) { if (this.jj -= this.ti, this.ti = 0, this.v = this.ip - this.jj, 0 !== this.v) if (this.v <= 3) { this.out[this.op - 2] |= this.v; do { this.out[this.op++] = this.buf[this.jj++] } while (--this.v > 0) } else { if (this.v <= 18) this.out[this.op++] = this.v - 3; else { for (this.tt = this.v - 18, this.out[this.op++] = 0; this.tt > 255;)this.tt -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.tt } do { this.out[this.op++] = this.buf[this.jj++] } while (--this.v > 0) } if (this.m_len = 4, this.buf[this.ip + this.m_len] === this.buf[this.m_pos + this.m_len]) do { if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.ip + this.m_len >= this.ip_end) break } while (this.buf[this.ip + this.m_len] === this.buf[this.m_pos + this.m_len]); if (this.m_off = this.ip - this.m_pos, this.ip += this.m_len, this.jj = this.ip, this.m_len <= 8 && this.m_off <= 2048) this.m_off -= 1, this.out[this.op++] = this.m_len - 1 << 5 | (7 & this.m_off) << 2, this.out[this.op++] = this.m_off >> 3; else if (this.m_off <= 16384) { if (this.m_off -= 1, this.m_len <= 33) this.out[this.op++] = 32 | this.m_len - 2; else { for (this.m_len -= 33, this.out[this.op++] = 32; this.m_len > 255;)this.m_len -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.m_len } this.out[this.op++] = this.m_off << 2, this.out[this.op++] = this.m_off >> 6 } else { if (this.m_off -= 16384, this.m_len <= 9) this.out[this.op++] = 16 | this.m_off >> 11 & 8 | this.m_len - 2; else { for (this.m_len -= 9, this.out[this.op++] = 16 | this.m_off >> 11 & 8; this.m_len > 255;)this.m_len -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.m_len } this.out[this.op++] = this.m_off << 2, this.out[this.op++] = this.m_off >> 6 } } else this.ip += 1 + (this.ip - this.jj >> 5); this.t = this.ll - (this.jj - this.ip_start - this.ti) }, this.compress = function (t) { for (this.state = t, this.ip = 0, this.buf = this.state.inputBuffer, this.maxSize = this.buf.length + Math.ceil(this.buf.length / 16) + 64 + 3, this.maxSize > this.out.length && (this.out = new Uint8Array(this.maxSize)), this.op = 0, this.l = this.buf.length, this.t = 0; this.l > 20 && (this.ll = this.l <= 49152 ? this.l : 49152, !(this.t + this.ll >> 5 <= 0));)this.dict.set(this.emptyDict), this.prev_ip = this.ip, this._compressCore(), this.ip = this.prev_ip + this.ll, this.l -= this.ll; if (this.t += this.l, this.t > 0) { if (this.ii = this.buf.length - this.t, 0 === this.op && this.t <= 238) this.out[this.op++] = 17 + this.t; else if (this.t <= 3) this.out[this.op - 2] |= this.t; else if (this.t <= 18) this.out[this.op++] = this.t - 3; else { for (this.tt = this.t - 18, this.out[this.op++] = 0; this.tt > 255;)this.tt -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.tt } do { this.out[this.op++] = this.buf[this.ii++] } while (--this.t > 0) } return this.out[this.op++] = 17, this.out[this.op++] = 0, this.out[this.op++] = 0, this.state.outputBuffer = !0 === this.returnNewBuffers ? new Uint8Array(this.out.subarray(0, this.op)) : this.out.subarray(0, this.op), this.OK } }; return { setBlockSize: function (i) { return t.setBlockSize(i) }, setOutputEstimate: function (i) { return t.setOutputSize(i) }, setReturnNewBuffers: function (i) { t.setReturnNewBuffers(i) }, compress: function (i, s) { return void 0 !== s && t.applyConfig(s), t.compress(i) }, decompress: function (i, s) { return void 0 !== s && t.applyConfig(s), t.decompress(i) } } }();
 !function (e, t) { "use strict"; var n = null, a = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator, i = "ontouchstart" in e || navigator.MaxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, o = a ? "pointerdown" : i ? "touchstart" : "mousedown", r = a ? "pointerup" : i ? "touchend" : "mouseup", m = a ? "pointermove" : i ? "touchmove" : "mousemove", u = a ? "pointerleave" : i ? "touchleave" : "mouseleave", s = 0, c = 0, l = 10, v = 10; function f(e) { p(), e = function (e) { if (void 0 !== e.changedTouches) return e.changedTouches[0]; return e }(e), this.dispatchEvent(new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: { clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY }, clientX: e.clientX, clientY: e.clientY, offsetX: e.offsetX, offsetY: e.offsetY, pageX: e.pageX, pageY: e.pageY, screenX: e.screenX, screenY: e.screenY })) || t.addEventListener("click", function e(n) { t.removeEventListener("click", e, !0), function (e) { e.stopImmediatePropagation(), e.preventDefault(), e.stopPropagation() }(n) }, !0) } function d(a) { p(a); var i = a.target, o = parseInt(function (e, n, a) { for (; e && e !== t.documentElement;) { var i = e.getAttribute(n); if (i) return i; e = e.parentNode } return a }(i, "data-long-press-delay", "600"), 10); n = function (t, n) { if (!(e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame && e.mozCancelRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame)) return e.setTimeout(t, n); var a = (new Date).getTime(), i = {}, o = function () { (new Date).getTime() - a >= n ? t.call() : i.value = requestAnimFrame(o) }; return i.value = requestAnimFrame(o), i }(f.bind(i, a), o) } function p(t) { var a; (a = n) && (e.cancelAnimationFrame ? e.cancelAnimationFrame(a.value) : e.webkitCancelAnimationFrame ? e.webkitCancelAnimationFrame(a.value) : e.webkitCancelRequestAnimationFrame ? e.webkitCancelRequestAnimationFrame(a.value) : e.mozCancelRequestAnimationFrame ? e.mozCancelRequestAnimationFrame(a.value) : e.oCancelRequestAnimationFrame ? e.oCancelRequestAnimationFrame(a.value) : e.msCancelRequestAnimationFrame ? e.msCancelRequestAnimationFrame(a.value) : clearTimeout(a)), n = null } "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, n) { n = n || { bubbles: !1, cancelable: !1, detail: void 0 }; var a = t.createEvent("CustomEvent"); return a.initCustomEvent(e, n.bubbles, n.cancelable, n.detail), a }, e.CustomEvent.prototype = e.Event.prototype), e.requestAnimFrame = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || function (t) { e.setTimeout(t, 1e3 / 60) }, t.addEventListener(r, p, !0), t.addEventListener(u, p, !0), t.addEventListener(m, function (e) { var t = Math.abs(s - e.clientX), n = Math.abs(c - e.clientY); (t >= l || n >= v) && p() }, !0), t.addEventListener("wheel", p, !0), t.addEventListener("scroll", p, !0), t.addEventListener(o, function (e) { s = e.clientX, c = e.clientY, d(e) }, !0) }(window, document);

@@ -1,8 +1,8 @@
-//issue: topic including "." doesn#t work for websocket
-//esp32 [2.0.17] board defs
+
 // Required Libraries
-#define ESP2NTFY_VERSION "v1.2"
+#define ESP2NTFY_VERSION "v1.0"
 #include <FS.h>  // Needs to be included first to avoid crashes
+#include <AESLib.h>
 #include <SPIFFS.h>
 #include <NTPClient.h>
 #include <WiFiUdp.h>
@@ -10,48 +10,67 @@
 #include <HTTPClient.h>
 #include <DNSServer.h>
 #include <WebServer.h>
-#include <WiFiManager.h>          // WiFi Manager [2.0.17]: https://github.com/tzapu/WiFiManager
-#include <ArduinoJson.h>          // [7.3.0] JSON Handling: https://github.com/bblanchon/ArduinoJson
-#include <WebSockets2_Generic.h>  // [1.13.2]WebSocket Library: https://github.com/khoih-prog/WebSockets2_Generic
+#include <WiFiManager.h>       // WiFi Manager [2.0.17]: https://github.com/tzapu/WiFiManager
+#include <ArduinoJson.h>       // [7.3.0] JSON Handling: https://github.com/bblanchon/ArduinoJson
+#include <WebSocketsClient.h>  // [2.6.1] https://github.com/Links2004/arduinoWebSockets
 #include <base64.h>
 #include <minilzo.h>  //MiniLZO [2.10] Compression: https://www.oberhumer.com/opensource/lzo/
 
+
+#include "esp_system.h"
+#include "esp_task_wdt.h"
+
+AESLib aesLib;
+AESLib aesLib2;
+byte aes_key[16];
+byte aes_iv[16];
+byte aes_iv2[16];
+
 // Compression Parameters
 #define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)  // Compression working memory size
-#define INPUT_BUFFER_SIZE 15000               // Input buffer size
-#define OUTPUT_BUFFER_SIZE 4500               //(INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size
-// from ntfy docs: 	Each message can be up to 4,096 bytes long. Longer messages are treated as attachments.
+#define INPUT_BUFFER_SIZE 20000               // Input buffer size
+#define OUTPUT_BUFFER_SIZE 4500               //(INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size \
+                                              // from ntfy docs: 	Each message can be up to 4,096 bytes long. Longer messages are treated as attachments.
+
+
+uint8_t inputBuffer[INPUT_BUFFER_SIZE];
+uint8_t compressedBuffer[OUTPUT_BUFFER_SIZE];  //This buffer is used for receiving data and for copmpressed data
+
+#define ESP_BOARD "untested!"  // Default value
 
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define ESP_BOARD "32Classic"
 #pragma message("Compiling for ESP32 Classic")
-#elif CONFIG_IDF_TARGET_ESP32C3
+uint8_t* workMem = nullptr;  // Pointer to the memory on the heap
+
+#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 #define ESP_BOARD "32C3"
 #pragma message("Compiling for ESP32 C3")
-uint8_t inputBuffer[INPUT_BUFFER_SIZE];
-uint8_t compressedBuffer[OUTPUT_BUFFER_SIZE];
+
+#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+#define ESP_BOARD "32S3"
+#pragma message("Compiling for ESP32 S3")
+
+#else
+#pragma message("!!!!Compiling for an untested MCU!!! This can cause issues. Make sure you test with serial connection for debugging :)")
 #endif
 
-// Debugging Settings for WebSockets
-#define DEBUG_WEBSOCKETS_PORT Serial  // Set debug port
-#define _WEBSOCKETS_LOGLEVEL_ 1       // Debug Level (0 to 4)
-
-// Using WebSockets2_Generic Namespace
-using namespace websockets2_generic;
+// Declare static workMem only for supported ESP32 variants
+#if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
+static uint8_t workMem[WORK_MEM_SIZE];  // Working memory for MiniLZO
+#endif
 
 // WebSocket and Network Components
-WebsocketsClient ws;
+WebSocketsClient webSocket;
 WiFiManager wm;
 WiFiClient client;
 HTTPClient http;
 WebServer server(80);
 
 // General Variables
-const char* newHostname = "Easy2Ntfy32";
+const char* newHostname = "Easy2Ntfy32AES";
 String minifiedPayload;
 String hexString;
-String sendOKStr;
-String toESPcommandStr;
 
 // Timing Variables
 uint32_t heartbeatTime = 0;
@@ -63,20 +82,17 @@ uint32_t timerDelay2 = 70000;
 
 // Miscellaneous Variables
 String ESPeasyIPchanged;
-const char* sendOK;
-const char* toESPcommand;
-uint32_t receiveTime;
 bool receiveLoop = false;
 bool connectedToWS = false;
 bool notkilled = true;
 bool doingItOnce = true;
 bool wasConnected = false;
+StaticJsonDocument<1024> Jcommand;
 
 // Flag for Saving Data
 bool shouldSaveConfig = false;
 
 // WebSocket Messages
-String websockeMsg;
 String topic2 = "_json";  // Add this to the ntfy topic to create an extra channel for receiving messages
 
 // LED Variables
@@ -106,21 +122,22 @@ uint32_t getTime() {
 
 //############################################# CUSTOM PARAMETERS FOR THE WIFI MANAGER #########################################
 
-// Assign Output Variables to GPIO Pins
 char ESPeasyIP[16] = "0.0.0.0";
 char ntfyUrl[80] = "ntfy.envs.net";
 char ntfyTopic[80] = "";
 char ledPinStr[4] = "2";
-
+char passWord[17] = "1234567890abcdef";
 
 const char* version = "<p align=\"right\"><small>EASY2NTFY_" ESP_BOARD " " ESP2NTFY_VERSION "</small></p>";
+//const char* version = "<p align=\"right\"><small>EASY2NTFY:" ESP2NTFY_VERSION "</small></p>";
 char customHtml_checkbox_inverted[70] = "type=\"number\" min=\"0\" max=\"1\" step=\"1\" style=\"width: 5ch;\"";
-
+char customHtml_checkbox_password[70] = "type=\"password\" maxlength=\"16\" placeholder=\"****************\"";
 
 // WiFiManager Custom Parameters
 WiFiManagerParameter custom_ESPeasyIP("ESPeasyIP", "ESPeasyIP", ESPeasyIP, 40);
 WiFiManagerParameter custom_ntfyUrl("ntfyUrl", "URL to ntfy server", ntfyUrl, 80);
 WiFiManagerParameter custom_ntfyTopic("ntfyTopic", "Topic", ntfyTopic, 80);
+WiFiManagerParameter custom_passWord("passWord", "Password", passWord, 17, customHtml_checkbox_password);
 WiFiManagerParameter custom_ledPinStr("ledPinStr", "LED pin", ledPinStr, 4);  // Use the char array
 //WiFiManagerParameter custom_inverted_checkbox("invert", "Invert the LED", invertValue, 2, customHtml_checkbox_inverted, WFM_LABEL_AFTER);
 WiFiManagerParameter custom_inverted_checkbox("invert", "Invert LED (0=default 1=inverted)", invert ? "1" : "0", 2, customHtml_checkbox_inverted);
@@ -141,15 +158,17 @@ bool blockWM = false;  // Set to false to continue code execution even without W
 void setup() {
   // Initialize Serial Communication
   Serial.begin(115200);
-  delay(3000);  // Wait for 3 seconds
-  Serial.print(F("Version: EASY2NTFY_"));
+  //delay(3000);  // Wait for 3 seconds
+  //Serial.print(F("Version: EASY2NTFY_"));
   Serial.println(ESP_BOARD " " ESP2NTFY_VERSION);
   Serial.println();
   Serial.println(F("Setup mode..."));
 
+  convertPassphraseToKey(passWord, aes_key);
+  aes_init();
   // Initialize LED pin
   pinMode(ledPin, OUTPUT);
-  analogWriteResolution(10);  // Set analog write resolution to 10 bits
+  //analogWriteResolution(10);  // Set analog write resolution to 10 bits
 
   // Initialize LZO Compression
   if (lzo_init() != LZO_E_OK) {
@@ -209,6 +228,15 @@ void setup() {
             Serial.println(F("Missing field: ntfyTopic"));
           }
 
+          // Validate and extract passWord
+          if (json.containsKey("passWord")) {
+            strcpy(passWord, json["passWord"]);
+            convertPassphraseToKey(passWord, aes_key);
+          } else {
+            Serial.println(F("Missing field: passWord"));
+          }
+
+
           //Validate and extract ledPin
           if (json.containsKey("ledPinStr")) {
             strcpy(ledPinStr, json["ledPinStr"]);
@@ -232,8 +260,10 @@ void setup() {
           Serial.println(ESPeasyIP);
           Serial.print(F("Url:"));
           Serial.println(ntfyUrl);
-          Serial.print(F("topic:"));
+          Serial.print(F("Topic:"));
           Serial.println(ntfyTopic);
+          Serial.print(F("Password:"));
+          Serial.println(passWord);
           Serial.print(F("LEDPin:"));
           Serial.println(ledPinStr);
           Serial.print(F("InvertedLED?:"));
@@ -250,74 +280,126 @@ void setup() {
   } else {
     // Handle file system mount failure
     Serial.println(F("Failed to mount file system, formatting..."));
+#if defined(CONFIG_IDF_TARGET_ESP32) || defined(CONFIG_IDF_TARGET_ESP32S3)
+    //workaround for "esp_task_wdt_reset" on esp32 classic and s3 since formatting takes too long
+    esp_task_wdt_config_t config = {
+      .timeout_ms = 60000,
+      .trigger_panic = true,
+    };
+    esp_err_t err = esp_task_wdt_reconfigure(&config);
+#endif
     SPIFFS.format();
     ESP.restart();
   }
 
   // Store current IP address in a string
   ESPeasyIPchanged = ESPeasyIP;
+  //Serial.setDebugOutput(true);
 
   // Initialize WebSockets
   setupDeviceWM();  // Custom WiFiManager setup
 
-  ws.onMessage(onMessageCallback);  // Set up message handler callback
-  ws.onEvent(onEventsCallback);     // Set up event handler callback
-
+  // event handler
+  webSocket.onEvent(webSocketEvent);
+  // try ever 5000 again if connection has failed
+  webSocket.setReconnectInterval(5000);
   // Connect to WebSocket server
   receiveTopic = ntfyTopic;
   Serial.print(F("Connecting to WebSocket on topic: "));
   Serial.println(receiveTopic);
   connectedToWS = false;
-  // bool connectedToWS = ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
-  // if (connectedToWS) {
-  //   Serial.println(F("WebSocket Connected!"));
-  //   // Optionally send a message after connecting
-  //   // String WS_msg = String("Hello to Server from ");
-  //   // ws.send(WS_msg);
-  // } else {
-  //   Serial.println(F("WebSocket Connection Failed!"));
-  // }
-
-  // Send WebSocket Ping
-  ws.ping();
 }
 
 
 //############################################# WEBSOCKETS ##########################################
+void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
 
-void onMessageCallback(WebsocketsMessage message) {
-  websockeMsg = message.data();
-  Serial.println();
-  Serial.println(F("----------------------Websockets message received--------------------"));
-  Serial.println(message.data());
-  parseWsMessage();
+  switch (type) {
+    case WStype_DISCONNECTED:
+      Serial.println("[WSc] Disconnected!");
+      blinkLed = true;
+      connectedToWS = false;
+      break;
+
+    case WStype_CONNECTED:
+      Serial.print("[WSc] Connected to url: ");
+      Serial.println((char*)payload);  // Cast payload to char* for proper display
+      blinkLed = false;
+      connectedToWS = true;
+      // Send message to server when connected
+      webSocket.sendTXT("Connected");
+      break;
+
+    case WStype_TEXT:
+      Serial.println();
+      Serial.println(F("---------------------- Websockets message received --------------------"));
+      Serial.print("[WSc] get text: ");
+      Serial.println((char*)payload);  // Cast payload to char* for proper display
+      parseWsMessage((char*)payload);
+      break;
+
+    case WStype_BIN:
+      Serial.print("[WSc] get binary length: ");
+      Serial.println(length);
+      // Uncomment if needed: hexdump(payload, length);
+      break;
+
+    case WStype_ERROR:
+      Serial.print("[WSc] ERROR: ");
+      Serial.println((char*)payload);  // Cast payload to char* for proper display
+    case WStype_FRAGMENT_TEXT_START:
+    case WStype_FRAGMENT_BIN_START:
+    case WStype_FRAGMENT:
+    case WStype_FRAGMENT_FIN:
+      // These cases can remain empty unless you need specific handling
+      break;
+  }
 }
 
-void parseWsMessage() {
-  // Create a JSON document to hold the parsed message
-  DynamicJsonDocument Jcommand(1024);
 
+void parseWsMessage(char* websockedMsg) {
+  // Use StaticJsonDocument to avoid heap allocation
+  //StaticJsonDocument<1024> Jcommand;
   // Deserialize the WebSocket message into the JSON document
-  deserializeJson(Jcommand, websockeMsg);
-
+  DeserializationError error = deserializeJson(Jcommand, websockedMsg);
+  if (error) {
+    Serial.println(F("JSON parsing failed!"));
+    return;
+  }
   // Extract relevant fields from the JSON message
-  sendOK = Jcommand["title"];
-  toESPcommand = Jcommand["message"];
-  receiveTime = Jcommand["time"];
+  const char* sendOK = Jcommand["title"];
+  const char* toESPcommand = Jcommand["message"];
+  uint32_t receiveTime = Jcommand["time"];
+
+  // Store values as strings for easier comparison
+  String sendOKStr = sendOK;
+  String toESPcommandStr;
+  if (toESPcommand && strcmp(toESPcommand, "triggered") != 0) {
+    Serial.println(F("Decode......"));
+    const char* decodedMsg = decodeMsg(toESPcommand);
+    if (decodedMsg) {
+      toESPcommandStr = decodedMsg;
+      //remove trailing spaces
+      // !!! workaround since decryptedLen in the decryption function is always a bit longer than expected
+      int len = toESPcommandStr.length();
+      while (len > 0 && !isPrintable(toESPcommandStr[len - 1])) {
+        toESPcommandStr.remove(len - 1);  // Remove the last character if it's a space
+        len--;                            // Decrease the length of the string
+      }
+    } else {
+      toESPcommandStr = toESPcommand;
+    }
+  }
 
   // Print extracted values for debugging
   Serial.print(F("Title: "));
   Serial.println(sendOK);
   Serial.print(F("Message: "));
-  Serial.println(toESPcommand);
+  Serial.println(toESPcommandStr);
   Serial.print(F("Time: "));
   Serial.println(receiveTime);
   Serial.print(F("Unix Time: "));
   Serial.println(getTime());
-
-  // Store values as strings for easier comparison
-  sendOKStr = sendOK;
-  toESPcommandStr = toESPcommand;
 
   // Check if the message is a "send" command
   if (sendOKStr.indexOf("send") != -1) {
@@ -387,23 +469,43 @@ void splitCommand(const String& command) {
   Command2ESP(commandStr2);
 }
 
-void onEventsCallback(WebsocketsEvent event, String data) {
-  (void)data;
 
-  if (event == WebsocketsEvent::ConnectionOpened) {
-    Serial.println(F("Connection Opened"));
-    analogWrite(ledPin, applyInversion(1000));
-    Serial.println(F("Initial heartbeat"));
-    ws.send("H");
-    blinkLed = false;
-  } else if (event == WebsocketsEvent::ConnectionClosed) {
-    Serial.println(F("Connection Closed"));
-    blinkLed = true;
-    connectedToWS = false;
-  } else if (event == WebsocketsEvent::GotPing) {
-    Serial.println(F("Got a Ping!"));
-  } else if (event == WebsocketsEvent::GotPong) {
-    Serial.println(F("Got a Pong!"));
+//#####################################################################################################
+
+//############################################# Decryption ##########################################
+const char* decodeMsg(const char* inputMsg) {
+
+  // Step 1: Decode Base64
+  int base64DecodedLen = base64_dec_len(inputMsg, strlen(inputMsg));
+  if (base64DecodedLen <= 16 || base64DecodedLen > OUTPUT_BUFFER_SIZE) {
+    Serial.println(F("Invalid Base64-decoded length."));
+    return nullptr;
+  }
+
+  memset(compressedBuffer, 0, OUTPUT_BUFFER_SIZE);  // Clear the buffer before decoding
+  base64_decode((char*)compressedBuffer, inputMsg, strlen(inputMsg));
+
+  // Extract the IV (first 16 bytes)
+  memcpy(aes_iv2, compressedBuffer, 16);
+
+  // Extract the ciphertext (remaining bytes)
+  int ciphertextLen = base64DecodedLen - 16;
+  byte* ciphertext = compressedBuffer + 16;
+
+  // Copy only the ciphertext bytes from compressedBuffer + 16
+  memcpy(ciphertext, compressedBuffer + 16, ciphertextLen);
+
+  // Decrypt the ciphertext using AES
+  int decryptedLen = aesLib2.decrypt(ciphertext, ciphertextLen, compressedBuffer, aes_key, sizeof(aes_key), aes_iv2);
+
+  if (decryptedLen > 0) {
+    compressedBuffer[decryptedLen] = '\0';  // Null-terminate the decrypted data
+    // Serial.println(F("Decrypted message: "));
+    // Serial.println((char*)compressedBuffer);  // Print the decrypted message for debugging
+    return (char*)compressedBuffer;  // Return the pointer to the decrypted buffer
+  } else {
+    Serial.println(F("Decryption failed!"));
+    return nullptr;
   }
 }
 
@@ -411,7 +513,6 @@ void onEventsCallback(WebsocketsEvent event, String data) {
 //#####################################################################################################
 
 //############################################# WIFI MANAGER ##########################################
-
 //Needs to be called only in the setup void.
 void setupDeviceWM() {
   Serial.println(F("setting up wifimanager"));
@@ -420,6 +521,7 @@ void setupDeviceWM() {
   wm.addParameter(&custom_ESPeasyIP);
   wm.addParameter(&custom_ntfyUrl);
   wm.addParameter(&custom_ntfyTopic);
+  wm.addParameter(&custom_passWord);
   wm.addParameter(&custom_ledPinStr);
   wm.addParameter(&custom_inverted_checkbox);
   wm.addParameter(&custom_text);
@@ -477,6 +579,8 @@ void loopDeviceWM() {
     strcpy(ESPeasyIP, custom_ESPeasyIP.getValue());
     strcpy(ntfyUrl, custom_ntfyUrl.getValue());
     strcpy(ntfyTopic, custom_ntfyTopic.getValue());
+    strcpy(passWord, custom_passWord.getValue());
+    convertPassphraseToKey(passWord, aes_key);
     strcpy(ledPinStr, custom_ledPinStr.getValue());
     ledPin = atoi(ledPinStr);
     invert = (strcmp(custom_inverted_checkbox.getValue(), "1") == 0);
@@ -485,8 +589,10 @@ void loopDeviceWM() {
     Serial.println(ESPeasyIP);
     Serial.print(F("Url:"));
     Serial.println(ntfyUrl);
-    Serial.print(F("topic:"));
+    Serial.print(F("Topic:"));
     Serial.println(ntfyTopic);
+    Serial.print(F("Password:"));
+    Serial.println(passWord);
     Serial.print(F("LEDPin:"));
     Serial.println(ledPin);
     Serial.print(F("InvertedLED?:"));
@@ -498,6 +604,7 @@ void loopDeviceWM() {
     json["ESPeasyIP"] = ESPeasyIP;
     json["ntfyUrl"] = ntfyUrl;
     json["ntfyTopic"] = ntfyTopic;
+    json["passWord"] = passWord;
     json["ledPinStr"] = ledPinStr;
     json["invert"] = invert ? "1" : "0";
 
@@ -511,7 +618,8 @@ void loopDeviceWM() {
     shouldSaveConfig = false;
     ESPeasyIPchanged = ESPeasyIP;
     receiveTopic = ntfyTopic;
-    ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
+    Serial.println(F("WSbegin"));
+    webSocket.begin(ntfyUrl, 80, "/" + receiveTopic + "/ws");
     // end save
   }
 }
@@ -545,7 +653,7 @@ void loop() {
     if (!connectedToWS && (millis() - previous_time >= 5000)) {
       Serial.println(F("-----------------------connecting to WS..............................."));
       receiveTopic = ntfyTopic;
-      connectedToWS = ws.connect(ntfyUrl, 80, "/" + receiveTopic + "/ws");
+      webSocket.begin(ntfyUrl, 80, "/" + receiveTopic + "/ws");
       previous_time = millis();  // Update the previous time for reconnection
       if (connectedToWS) {
         Serial.println(F("WebSocket Connected!"));
@@ -556,23 +664,24 @@ void loop() {
   }
 
   // WebSockets - Poll for incoming messages if available
-  if (ws.available()) {
-    ws.poll();  // Necessary to process incoming WebSocket messages
+  // if (ws.available()) {
+  //   ws.poll();  // Necessary to process incoming WebSocket messages
 
-    // Send heartbeat every 60 seconds to keep the connection alive
-    if (millis() - heartbeatTime > 60000) {
-      Serial.println(F("Sending heartbeat"));
-      heartbeatTime = millis();  // Update the last heartbeat time
-      ws.send("H");              // Send heartbeat message
-    }
-  }
-
+  //   // Send heartbeat every 60 seconds to keep the connection alive
+  //   if (millis() - heartbeatTime > 60000) {
+  //     Serial.println(F("Sending heartbeat"));
+  //     heartbeatTime = millis();  // Update the last heartbeat time
+  //     ws.send("H");              // Send heartbeat message
+  //   }
+  // }
+  webSocket.loop();
   //------------------update values of paramaters in WiFiManager--------------------------------
   wm.getParameters()[0]->setValue(ESPeasyIP, 40);
   wm.getParameters()[1]->setValue(ntfyUrl, 80);
   wm.getParameters()[2]->setValue(ntfyTopic, 80);
-  wm.getParameters()[3]->setValue(ledPinStr, 4);
-  wm.getParameters()[4]->setValue(invert ? "1" : "0", 2);
+  wm.getParameters()[3]->setValue(passWord, 17);
+  wm.getParameters()[4]->setValue(ledPinStr, 4);
+  wm.getParameters()[5]->setValue(invert ? "1" : "0", 2);
 
   //------------------LED--------------------------------
   // Handle LED blinking if there's a connection issue (blinkLed is true)
@@ -724,31 +833,30 @@ void GetJson() {
     // Call compression function
     compressData(minifiedPayload);
   }
+  // Reset minifiedPayload to an empty string after its last use
+  minifiedPayload = "";
 }
 
 
-//################################## ...compres the Data with LZO ##################################################
+//################################## ...compress the Data with LZO ##################################################
 
 void compressData(const String& inputPayload) {
   Serial.println();
   Serial.println(F("----------------------...compressing...------------------------------"));
 
-  // Working memory for MiniLZO
-  static uint8_t workMem[WORK_MEM_SIZE];
+  memset(compressedBuffer, 0, OUTPUT_BUFFER_SIZE);
   lzo_uint compressedSize = 0;
 
-  // Buffers for Compression and Decompression
+// Buffers for Compression and Decompression
 #ifdef CONFIG_IDF_TARGET_ESP32
-  uint8_t* inputBuffer = (uint8_t*)malloc(INPUT_BUFFER_SIZE);
-  uint8_t* compressedBuffer = (uint8_t*)malloc(OUTPUT_BUFFER_SIZE);
+  uint8_t* workMem = (uint8_t*)malloc(WORK_MEM_SIZE);
 
   // Check if malloc was successful
-  if (inputBuffer == NULL || compressedBuffer == NULL) {
+  if (workMem == NULL) {
     Serial.println(F("Memory allocation failed for inputBuffer or compressedBuffer."));
-    return;
+    return;  // Exit if there is not enough memory
   }
 #endif
-
   const size_t inputSize = inputPayload.length();
 
   Serial.print(F("Total Memory Needed: "));
@@ -758,9 +866,11 @@ void compressData(const String& inputPayload) {
   // Check if there is enough free memory to proceed with compression
   if (ESP.getFreeHeap() < (inputSize + WORK_MEM_SIZE + OUTPUT_BUFFER_SIZE)) {
     // Not enough memory for
-
     Serial.println(F("Not enough memory to compress the data. Skipping compression."));
-    return;  // Exit if there is not enough memory
+#ifdef CONFIG_IDF_TARGET_ESP32
+  if (inputBuffer) free(inputBuffer);
+  if (compressedBuffer) free(compressedBuffer);
+#endif
   }
 
   // Copy input data to buffer
@@ -781,6 +891,9 @@ void compressData(const String& inputPayload) {
     Serial.println(compressedSize);
   } else {
     Serial.println(F("Compression failed!"));
+#ifdef CONFIG_IDF_TARGET_ESP32
+    if (workMem) free(workMem);
+#endif
   }
 
   // Post the compressed data to Ntfy
@@ -789,10 +902,9 @@ void compressData(const String& inputPayload) {
   // Clear compressedBuffer to reset any old data
   memset(compressedBuffer, 0, compressedSize);
 
-  // Free dynamically allocated memory after compression if needed
+// Free dynamically allocated memory after compression if needed
 #ifdef CONFIG_IDF_TARGET_ESP32
-  if (inputBuffer) free(inputBuffer);
-  if (compressedBuffer) free(compressedBuffer);
+  if (workMem) free(workMem);
 #endif
 }
 
@@ -816,12 +928,31 @@ void PostToNtfy(uint8_t* compressedBuffer, lzo_uint compressedSize) {
   http.addHeader("Tags", "json");
   http.addHeader("Cache", "no");
 
-  String base64Encoded = base64::encode(compressedBuffer, compressedSize);
+  Serial.println(ESP.getFreeHeap());
+  // Save a copy of the original IV before encryption
+  byte original_iv[16];
+  memcpy(original_iv, aes_iv, 16);  // Backup the original IV
 
+  // Use integer casting and rounding if needed (e.g., ceil)
+  int bufferSize = (int)(1.2 * compressedSize);  // Calculate size as an integer
+  byte encryptedBuffer[bufferSize] = { 0 };      // Define the output buffer with the calculated size  // Encrypt the padded plaintext using AES-128
+
+  uint16_t cipherlength = aesLib.encrypt(compressedBuffer, compressedSize, encryptedBuffer, aes_key, sizeof(aes_key), aes_iv);
+  // Convert encrypted buffer to base64 string
+  Serial.print(F("cipherlength size: "));
+  Serial.println(cipherlength);
+  //free(compressedBuffer);
+
+  // // Combine IV and ciphertext
+  byte combined[16 + cipherlength];
+  memcpy(combined, original_iv, 16);                     // Prepend the IV
+  memcpy(combined + 16, encryptedBuffer, cipherlength);  // Append the ciphertext
+
+  String base64Encoded = base64::encode(combined, 16 + cipherlength);
+  // Send the encrypted buffer as binary data
   int httpResponseCode2 = http.POST(base64Encoded);
-  minifiedPayload = "";
 
-  Serial.print("HTTP Response code POST: ");
+  Serial.print(F("HTTP Response code POST: "));
   Serial.println(httpResponseCode2);
 
   if (httpResponseCode2 == 200) {
@@ -839,4 +970,26 @@ int applyInversion(int value) {
     return 1024 - value;  // Invert the brightness
   }
   return value;  // Return brightness as is
+}
+
+void aes_init() {
+  aesLib.gen_iv(aes_iv);
+  aesLib.set_paddingmode((paddingMode)0);
+}
+
+void convertPassphraseToKey(char* passphrase, uint8_t* key) {
+  int passphraseLength = strlen(passphrase);
+  if (passphraseLength < 16) {
+    // If passphrase is shorter than 16 bytes, repeat it to fill the key
+    for (int i = 0; i < 16; i++) {
+      key[i] = passphrase[i % passphraseLength];
+    }
+  } else if (passphraseLength == 16) {
+    // If passphrase is exactly 16 bytes, copy it directly to the key
+    memcpy(key, passphrase, 16);
+  } else {
+    // If passphrase is longer than 16 bytes, truncate it and issue a warning
+    memcpy(key, passphrase, 16);
+  }
+  Serial.print(F("Password set!"));
 }
