@@ -53,6 +53,7 @@ var invisible = false;
 var switchLocal = true;
 var initalRun = true;
 var keyString = '';
+var notencrypted = false;
 
 //#################################### channel & cookie handling ####################################
 function addChan() {
@@ -261,6 +262,7 @@ async function fetchNtfy() {
             if (dataNtfy.message.includes("System")) {
                 console.log("Data is uncompressed...");
                 dataNtfydeCompressed = dataNtfy.message;
+                notencrypted = true;
             } else {
                 //Decode AES -> Decode Base64 -> decompress LZH--------------------------------------------------
 
@@ -284,7 +286,7 @@ async function fetchNtfy() {
                     alert('Decompression failed! \nPlease check your password.');
                     location.reload();
                 }
-
+                notencrypted = true;
             }
             if (dataNtfydeCompressed) {
                 clearTimeout(tryconnectIV);
@@ -1298,10 +1300,11 @@ async function getUrl(url, title) {
         try {
 
             // Do not encode the base URL
+            if (url && !notencrypted) {url = encryptData(url);}    
             message = 'https://' + ntfyChannel +
                 '?title=' + encodeURIComponent(title) +
-                '&message=' + (url ? encodeURIComponent(encryptData(url)) : '');
-            //console.log(encryptData(message));
+                '&message=' + (url ? encodeURIComponent(url) : '');
+            console.log(encryptData(url));
             response = await fetch(message, {
                 signal: controller.signal,
                 method: 'POST',
