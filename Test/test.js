@@ -262,7 +262,7 @@ async function fetchNtfy() {
             if (dataNtfy.message.includes("System")) {
                 console.log("Data is uncompressed...");
                 dataNtfydeCompressed = dataNtfy.message;
-                notencrypted = true;
+                //notencrypted = true;
             } else {
                 //Decode AES -> Decode Base64 -> decompress LZH--------------------------------------------------
 
@@ -286,7 +286,7 @@ async function fetchNtfy() {
                     alert('Decompression failed! \nPlease check your password.');
                     location.reload();
                 }
-                notencrypted = true;
+                //notencrypted = true;
             }
             if (dataNtfydeCompressed) {
                 clearTimeout(tryconnectIV);
