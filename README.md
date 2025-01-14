@@ -14,7 +14,7 @@ Open easy2ntfy: https://raw.githack.com/chromoxdor/easy2ntfy/main/fetch.html
 ## **What is it for:**
 
 I created easy2ntfy because i was in need to access my ESPeasy nodes via the internet since there was no easy way for me to use a VPN since my Provider uses CGN ([https://en.wikipedia.org/wiki/Carrier-grade_NAT](https://en.wikipedia.org/wiki/Carrier-grade_NAT)). Although I have now solved this problem, I still wanted to work on esp2nfty because it is very easy to use.  
-It is a combination of a gateway (esp8266) and a web application (derivative of easyfetch) which offers almost the same functionality as easyfetch.  
+It is a combination of a gateway (ESP32) and a web application (derivative of easyfetch) which offers almost the same functionality as easyfetch.  
 This gateway can also be used to send data from an ESPeasy device in a different location via PostToHttp.  
 
 ## **How it works (see diagram):**
