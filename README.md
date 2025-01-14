@@ -43,9 +43,9 @@ Only when a command is issued (e.g. button is pressed), the node is changed or t
 And since easy2ntfy uses two channels it is unlikely to hit at least the daily message limit.  
 If the rate of requests limit is exceeded the web application will show an alert and stops sending for 10 seconds  
 If the message length exceeds 4,096 bytes the content will be treated as an attachment and can no longer be parsed.  
-Filtering out unnecessary JSON by esasy2ntfy shortens the output but a node (especially esp32) with a lot of enabled devices could hit this limit and will not be displayed.  
-  
-  
+~~Filtering out unnecessary JSON by esasy2ntfy shortens the output but a node (especially esp32) with a lot of enabled devices could hit this limit and will not be displayed.~~  
+Since 2025-01-13 easy2ntfy uses LZO compression for the data, which will make it much harder to exceed the message length limit. 
+
 ## **Todo:**
 
 - maybe show amount of daily send messages  
