@@ -29,7 +29,7 @@ websocket. From there the message is parsed and send to the ESPeasy-node.
 ## **Security concerns:**
 The password is only there to encrypt the data so that no one can read or tamper with the application. It doesn't protect against sophisticated attacks such as cross-site scripting or physical access to your device where the password and channel data can be accessed.  
 Since the channel name is needed to read and send messages to and from ESPeasy, it is important to choose a channel name that is not easy to guess. (The channel name also acts as a kind of password).  
-A channel like "test" is likely to be selected more often and anyone can send or receive messages, which increases the total amount of messages that can be sent at any given time. (See **Limitations**)
+A channel like "test" is likely to be selected more often and anyone can send or receive messages, which adds to the total amount of messages that can be sent at a given time. (See **Limitations**)
 E.g.: bad channel name: "test"  
 good channel name: "Test_123-456_tesT"  
 
