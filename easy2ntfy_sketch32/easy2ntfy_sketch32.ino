@@ -28,7 +28,7 @@ byte aes_iv2[16];
 
 // Compression Parameters
 #define WORK_MEM_SIZE (LZO1X_1_MEM_COMPRESS)  // Compression working memory size
-#define INPUT_BUFFER_SIZE 15000               // Input buffer size
+#define INPUT_BUFFER_SIZE 20000               // Input buffer size
 #define OUTPUT_BUFFER_SIZE 4500               //(INPUT_BUFFER_SIZE + INPUT_BUFFER_SIZE / 16 + 64 + 3)  // Output buffer size \
                                               // from ntfy docs: 	Each message can be up to 4,096 bytes long. Longer messages are treated as attachments.
 
@@ -410,10 +410,10 @@ void parseWsMessage(char* websockedMsg) {
 
     // Handle specific send commands
     if (sendOKStr == "send1") {
-      lastTime = millis() - (timerDelay - 1000);  // Send JSON immediately
+      lastTime = millis() - (timerDelay - 100);  // Send JSON immediately
       ESPeasyIPchanged = ESPeasyIP;               // Set default IP
     } else if (sendOKStr == "send2") {
-      lastTime = millis() - (timerDelay - 1000);  // Send JSON immediately
+      lastTime = millis() - (timerDelay - 100);  // Send JSON immediately
     }
 
   } else if (sendOKStr == "stop") {
@@ -425,7 +425,7 @@ void parseWsMessage(char* websockedMsg) {
     // Change the node IP address
     Serial.println(F("Changing node..."));
     ESPeasyIPchanged = toESPcommandStr;
-    lastTime = millis() - (timerDelay - 1000);  // Send JSON immediately
+    lastTime = millis() - (timerDelay - 500);  // Send JSON immediately
 
   } else if (sendOKStr == "kill") {
     // Handle the kill command
@@ -731,7 +731,7 @@ void Command2ESP(const String& toESPcommand) {
     Serial.println(httpResponseCode);
     Serial.println();
     Serial.println(F("----------------------sending update...------------------------------"));
-    lastTime = millis() - (timerDelay - 1000);  //sending json almost immediately after the last command is received
+    lastTime = millis() - (timerDelay - 100);  //sending json almost immediately after the last command is received
   } else {
     Serial.print(F("Error code: "));
     Serial.println(httpResponseCode);
