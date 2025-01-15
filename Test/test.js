@@ -533,7 +533,7 @@ function fetchJson() {
                             }
                             else if (itemN.includes("XI")) {
                                 html += '<div class="btnTile sensorset clickables ' + bS + '">' + htS2;
-                            }                            else { wasUsed = false; }
+                            } else { wasUsed = false; }
                         }
                         //dummy---------------------------------------------------------
                         if (sensor.TaskDeviceNumber == 33 && !(iN).includes("XX") && !(sensorName).includes("bigVal")) {
@@ -720,7 +720,6 @@ function fetchJson() {
     changeCss();
     resizeText();
     longPressB();
-
 }
 
 async function getRemoteGPIOState(taskNum, unitToNum, gpioNum, unitFromNum, valueNum) {
@@ -1294,6 +1293,7 @@ function playSound(freQ) {
 
 //timeout fetch requests
 async function getUrl(url, title) {
+    console.log(url, title);
     if (Date.now() - responseTime > 10000) {
         if (!title) title = "command"
         let controller = new AbortController();
@@ -1301,11 +1301,11 @@ async function getUrl(url, title) {
         try {
 
             // Do not encode the base URL
-            if (url && !notencrypted) {url = encryptData(url);}    
+            if (url && !notencrypted) { url = encryptData(url); }
             message = 'https://' + ntfyChannel +
                 '?title=' + encodeURIComponent(title) +
                 '&message=' + (url ? encodeURIComponent(url) : '');
-            console.log(encryptData(url));
+            //console.log(encryptData(url));
             response = await fetch(message, {
                 signal: controller.signal,
                 method: 'POST',
@@ -1339,7 +1339,6 @@ async function getUrl(url, title) {
 }
 
 function connectionIssues() {
-    sendReady(1);
     if (Date.now() - responseTime2 > 80000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<img src="https://legendofmi.com/images/animatedgifs/threeheaded.gif" style="box-shadow: none; image-rendering: pixelated" width="80" height="80" alt="Three-headed Monkey">';
@@ -1347,6 +1346,7 @@ function connectionIssues() {
     else if (Date.now() - responseTime2 > 70000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">If you are still here reading this you should probably give up and enjoy a walk in the park.<pre>';
+        sendReady(1);
     }
     else if (Date.now() - responseTime2 > 60000) {
         clearHtml();
@@ -1355,6 +1355,7 @@ function connectionIssues() {
     else if (Date.now() - responseTime2 > 50000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">I was joking. :)<pre>';
+        sendReady(1);
     }
     else if (Date.now() - responseTime2 > 40000) {
         clearHtml();
@@ -1363,6 +1364,7 @@ function connectionIssues() {
     else if (Date.now() - responseTime2 > 30000) {
         clearHtml();
         document.getElementById('sensorList').innerHTML = '<pre class="noChan">...or a cup of grog...<pre>';
+        sendReady(1);
     }
     else if (Date.now() - responseTime2 > 20000) {
         clearHtml();
@@ -1393,6 +1395,7 @@ document.addEventListener("visibilitychange", () => {
         console.log("invisible");
         invisible = true;
         clearTimeout(jsonAlarmIV);
+        clearTimeout(readyIV);
         if (isittime2) { getUrl("", "stop"); }
     }
 });

@@ -1,7 +1,8 @@
 # MacOSX Finder *****
 .DS_Store
-
+/easy2ntfy_sketch32/build
 /easy2ntfy_sketch_old
 /easy2ntfy_sketch32_bkup
-/Test/test.min.js
+/Test/test.min.*
+
 .vscode
