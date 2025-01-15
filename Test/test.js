@@ -396,6 +396,9 @@ function fetchJson() {
     catch (err) {
         //console.log(err); // or just pass/continue/return true/any way of doing nothing
     }
+    if (!isittime) {
+        return;
+    }
     //-----------------------
     urlParams = new URLSearchParams(window.location.search);
     myParam = urlParams.get('unit');
