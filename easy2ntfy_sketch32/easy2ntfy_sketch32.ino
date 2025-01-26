@@ -102,7 +102,7 @@ int ledState = LOW;           // LED state
 uint32_t previousMillis = 0;  // Last time LED was updated
 const long interval = 1000;   // Blink interval (milliseconds)
 bool blinkLed = false;
-int targetBrightness = 300;  // Target brightness (0 to 1023)
+int targetBrightness = 256;  // Target brightness (0 to 1023)
 int startBrightness = 1023;  // Start at full brightness
 unsigned long fadeStartTime = 0;
 const unsigned long fadeDuration = 1500;  // Fade duration in milliseconds
@@ -336,12 +336,12 @@ void webSocketEvent(WStype_t type, uint8_t* payload, size_t length) {
       break;
 
     case WStype_TEXT:
+      startFade();
       Serial.println();
       Serial.println(F("---------------------- Websockets message received --------------------"));
       Serial.print("[WSc] get text: ");
       Serial.println((char*)payload);  // Cast payload to char* for proper display
       parseWsMessage((char*)payload);
-      startFade();
       break;
 
     case WStype_BIN:
@@ -740,7 +740,7 @@ void Command2ESP(const String& toESPcommand) {
     Serial.println(httpResponseCode);
     Serial.println();
     Serial.println(F("----------------------sending update...------------------------------"));
-    lastTime = millis() - (timerDelay - 100);  //sending json almost immediately after the last command is received
+    lastTime = millis() - (timerDelay - 1000);  //sending json almost immediately after the last command is received
   } else {
     Serial.print(F("Error code: "));
     Serial.println(httpResponseCode);
@@ -974,6 +974,7 @@ void PostToNtfy(uint8_t* compressedBuffer, lzo_uint compressedSize) {
   Serial.println(httpResponseCode2);
 
   if (httpResponseCode2 == 200) {
+    startFade();
     timerDelay = 10000;
   } else if (httpResponseCode2 == 429) {
     timerDelay = 60000;
@@ -1026,9 +1027,8 @@ void startFade() {
 // Non-blocking fading function
 void fadeLED() {
   unsigned long elapsedTime = millis() - fadeStartTime;
-
   if (elapsedTime < fadeDuration) {
-    // Calculate brightness directly with 1024 levels
+    // Calculate brightness
     int brightness = map(elapsedTime, 0, fadeDuration, startBrightness, targetBrightness);
     analogWrite(ledPin, applyInversion(brightness));  // Set PWM brightness
   } else {

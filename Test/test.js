@@ -556,11 +556,11 @@ function fetchJson() {
                             //virtual buttons
                             else if ((sensorName).includes("dButtons")) {
                                 if (item.Value > -1) {
-                                    itemNB = itemN.split("&")[0];
-                                    itemNB2 = changeNN(itemNB);
-                                    if (itemN.split(">")[1]) getRemoteGPIOState(sensor.TaskNumber, itemN.split("&")[1].split(">")[0], itemN.split(">")[1], myJson.System['Unit Number'], item.ValueNumber);
-                                    if (itemN.split("&")[1] == "A") { html += '<div class="btnTile ' + bS + htS1 + 'getNodes(\'' + itemNB + '\')"><div  class="sensors nodes" style="font-weight:bold;">' + itemNB2 + '</div></div>'; }
-                                    else { html += '<div class="btnTile ' + bS + htS1 + 'buttonClick(\'' + itemN + '\')"><div id="' + itemN + '" class="sensors" style="font-weight:bold;">' + itemNB2 + '</div></div>'; }
+                                    const [itemNB, itemNB2] = [itemN.split("&")[0], changeNN(itemN.split("&")[0])];
+                                    const [unitToNum, gpioNum] = [itemN.split("&")[1]?.split(">")[0], itemN.split(">")[1]];
+                                    if (gpioNum) getRemoteGPIOState(sensor.TaskNumber, unitToNum, gpioNum, myJson.System['Unit Number'], item.ValueNumber);
+                                    const onClickAction = unitToNum === "A" ? `getNodes('${itemNB}')` : `buttonClick('${itemN}')`;
+                                    html += `<div class="btnTile ${bS} ${htS1}${onClickAction}"><div id="${itemN}" class="sensors" style="font-weight:bold;">${itemNB2}</div></div>`;
                                 }
                             }
                             //push buttons
@@ -1202,21 +1202,18 @@ function topF() { document.body.scrollTop = 0; document.documentElement.scrollTo
 //function longPressN() { document.getElementById('mOpen').addEventListener('long-press', function (e) { window.location.href = nP; }); }
 
 function longPressS() {
-    document.getElementById('closeBtn').addEventListener('long-press', function (e) {
-        e.preventDefault();
-        mC("Snd")
-    });
-    document.getElementById('nOpen').addEventListener('long-press', function (e) {
-        e.preventDefault();
-        mC("Sort")
-    });
-    document.getElementById('openSys').addEventListener('long-press', function (e) {
-        e.preventDefault();
-        mC("Two")
-    });
-    document.getElementById('unitId').addEventListener('long-press', function (e) {
-        e.preventDefault();
-        mC("Col")
+    const elements = [
+        { id: 'closeBtn', cookie: 'Snd' },
+        { id: 'nOpen', cookie: 'Sort' },
+        { id: 'openSys', cookie: 'Two' },
+        { id: 'unitId', cookie: 'Col' }
+    ];
+
+    elements.forEach(({ id, cookie }) => {
+        document.getElementById(id).addEventListener('long-press', function (e) {
+            e.preventDefault();
+            mC(cookie);
+        });
     });
 }
 
