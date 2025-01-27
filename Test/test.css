@@ -52,6 +52,7 @@ body {
     z-index: 1;
     display: flex;
     position: fixed;
+    transition: 0.3s ease-out;
 }
 
 #allList {
@@ -61,15 +62,15 @@ body {
     grid-row-gap: 1vh;
     margin: auto;
     padding: 5px;
-    transition: 0.8s ease-out;
+    transition: .8s ease-out;
     flex-direction: column;
     padding-bottom: 40px;
     padding-top: 40px;
-    color: white;
+    color: #fff;
 }
 
 #allList>div>:not(.bigNum) {
-    box-shadow: 0 0 10px 1px rgb(0 0 0 / 15%);
+    box-shadow: 0 0 10px 1px #00000026;
 }
 
 .allExtra {
@@ -79,7 +80,7 @@ body {
 #bigNumber {
     display: grid;
     gap: 1vh;
-    transition: 0.8s ease-out;
+    transition: .8s ease-out;
 }
 
 .bigNum {
@@ -88,7 +89,7 @@ body {
     gap: 1vh;
     width: -webkit-fill-available;
     justify-content: start;
-    transition: 0.8s ease-out;
+    transition: .8s ease-out;
 }
 
 .bigNumOne {
@@ -110,7 +111,7 @@ body {
     background: #837c7c;
     flex-wrap: nowrap;
     justify-content: space-between;
-    box-shadow: 0 0 10px 1px rgb(0 0 0 / 15%);
+    box-shadow: 0 0 10px 1px #00000026;
 }
 
 .bigC {
@@ -121,14 +122,14 @@ body {
     display: grid;
     gap: 1vh;
     justify-content: center;
-    transition: 0.8s ease-out;
+    transition: .8s ease-out;
 }
 
 #sliderList {
     display: grid;
     gap: 1vh;
     min-width: 288px;
-    transition: 0.8s ease-out;
+    transition: .8s ease-out;
 }
 
 #sliderList .sensorset {
@@ -141,36 +142,34 @@ body {
 .push:active,
 button:active {
     transform: scale(0.95);
-    -webkit-transform: scale(0.95);
-    transition: 0.1s
+    transition: .1s;
 }
 
 .slider,
 .npSl {
     -webkit-appearance: none;
     position: absolute;
-    height: inherit;
+    height: 40px;
 }
 
 .slider {
-    mix-blend-mode: color;
     background: #847d7d;
     width: calc(100% + 44.2px);
     left: -24.2px;
     top: 0;
 }
 
+.noI {
+    pointer-events: none;
+}
+
 .npSl {
     width: 100%;
-    left: -0.2px;
+    left: -.2px;
     position: inherit;
     height: 40px;
     overflow: hidden;
     border-radius: 5px;
-}
-
-.sliderAmount {
-    margin-top: -4px;
 }
 
 .slider::-webkit-slider-thumb {
@@ -197,7 +196,7 @@ button:active {
     width: 20px;
     height: 42px;
     cursor: pointer;
-    box-shadow: 0 0 2px 0 #ffffff;
+    box-shadow: 0 0 2px 0 #fff;
     background: #3e88cb;
 }
 
@@ -205,7 +204,7 @@ button:active {
     width: 20px;
     height: 42px;
     cursor: pointer;
-    box-shadow: 0 0 2px 0 #ffffff;
+    box-shadow: 0 0 2px 0 #fff;
     background: #3e88cb;
     border: 0;
 }
@@ -222,7 +221,8 @@ button:active {
     background-image: linear-gradient(to right, white, #333);
 }
 
-.slTS {
+.slTS,
+.thermO {
     -webkit-appearance: none;
     position: absolute;
     height: 40px;
@@ -230,8 +230,11 @@ button:active {
     border-radius: 5px;
     width: 100%;
     top: 0;
-    mix-blend-mode: overlay;
     pointer-events: none;
+}
+
+.slTS {
+    mix-blend-mode: overlay;
     background: #8a8787;
 }
 
@@ -259,21 +262,52 @@ button:active {
     border-right: 10px solid #d25e42;
 }
 
+.thermO::-webkit-slider-thumb {
+    border: 4px solid #d25e42;
+}
+
+.thermO::-moz-range-thumb {
+    border: 4px solid #d25e42;
+}
+
 .slTS::-webkit-slider-thumb {
-    -webkit-appearance: none;
     width: 0;
     height: 40px;
-    cursor: pointer;
-    appearance: none;
-    pointer-events: all;
+    box-shadow: 0 0 10px 10px #00000026;
 }
 
 .slTS::-moz-range-thumb {
     width: 0;
     height: 100vh;
+}
+
+.slTHU::-moz-range-thumb {
     cursor: pointer;
     appearance: none;
     pointer-events: all;
+}
+
+.slTHU::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    background: none;
+    cursor: pointer;
+    appearance: none;
+    pointer-events: all;
+}
+
+.thermO::-webkit-slider-thumb {
+    width: 25px;
+    height: 40px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px 10px #00000026, inset 0 0 5px 2px #00000026;
+}
+
+.thermO::-moz-range-thumb {
+    background: none;
+    width: 20px;
+    height: 32px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px 10px #00000026, inset 0 0 5px 2px #00000026;
 }
 
 .slTimeSet {
@@ -290,11 +324,18 @@ button:active {
     position: relative;
 }
 
-.slTimeText {
+.slTimeText,
+.sliderAmount {
     position: absolute;
     right: 4.2px;
     bottom: 0;
     font-weight: 400;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.thermO {
+    background: none;
 }
 
 .sensorset:not(.btnTile) {
@@ -347,8 +388,13 @@ button:active {
     width: inherit;
 }
 
-.vInputs:focus::placeholder {
-    opacity: 0.2;
+.vInputs::placeholder {
+    opacity: 1;
+    color: #fff;
+}
+
+vInputs:focus::placeholder {
+    opacity: .2;
 }
 
 input::-webkit-outer-spin-button,
@@ -371,7 +417,7 @@ input[type=number] {
 }
 
 .alert {
-    background: #d8524f !important
+    background: #d8524f !important;
 }
 
 .btnTile {
@@ -382,6 +428,8 @@ input[type=number] {
 .sensors {
     padding-bottom: 4px;
     overflow-wrap: anywhere;
+    z-index: 2;
+    pointer-events: none;
 }
 
 .row {
@@ -399,22 +447,17 @@ input[type=number] {
 }
 
 .even {
-    
     display: flex;
     word-spacing: -2px;
     white-space: nowrap;
     height: 20px;
-    align-items: center
+    align-items: center;
+    justify-content: flex-end;
 }
 
 .cron {
     padding-bottom: 1pt;
     text-align: end
-}
-
-.vInputs::placeholder {
-    opacity: 1;
-    color: white;
 }
 
 #opener {
@@ -449,15 +492,15 @@ input[type=number] {
     position: fixed;
     z-index: 20;
     top: 0;
-    background-color: #111111d9;
-    transition: 0.6s;
+    background: #111111d9;
+    transition: .6s;
     overflow-y: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
     cursor: pointer;
     justify-content: center;
-    color: white;
+    color: #fff;
 }
 
 .menueItem {
@@ -473,7 +516,7 @@ input[type=number] {
 }
 
 #menueList div:hover {
-    color: #444444
+    color: #444
 }
 
 .nc {
@@ -485,7 +528,6 @@ input[type=number] {
     bottom: 2%;
     font-size: 35px;
     color: #b3b3b3;
-    cursor: pointer;
 }
 
 #openSys {
@@ -504,7 +546,6 @@ input[type=number] {
     transition: .2s;
     width: max-content;
     max-width: 280px;
-    cursor: pointer;
 }
 
 #menueList::-webkit-scrollbar {
@@ -518,8 +559,8 @@ input[type=number] {
 
 #sysInfo {
     background: #ffffff17;
-    color: white;
-    transition: 0.5s;
+    color: #fff;
+    transition: .5s;
     border-radius: 5px;
     width: 200px;
     height: 0;
@@ -734,35 +775,35 @@ button.remove {
 
 @media (prefers-color-scheme: dark) {
     body {
-        background: rgb(0, 0, 0);
-        color: #b3b3b3;
+        background: #000;
+        color: #b3b3b3
     }
 
     input::placeholder,
     #allList {
-        color: #b3b3b3;
+        color: #b3b3b3
     }
 
     iframe,
     .slTimeSetWrap {
-        background: black;
+        background: #000
     }
 
     #opener {
-        background: #000000a8;
+        background: #000000a8
     }
 
     .bigNumWrap {
-        background: #444444;
+        background: #444
     }
 
     .bigC {
-        background: #553630;
+        background: #553630
     }
 
     .slTS {
         mix-blend-mode: lighten;
-        background: #444444 !important;
+        background: #444 !important
     }
 
     .slTS:nth-child(1)::-webkit-slider-thumb {
@@ -785,21 +826,28 @@ button.remove {
         border-right: 10px solid #6d1343;
     }
 
+    .thermO::-webkit-slider-thumb {
+        border: 4px solid #882c29;
+    }
+
+    .thermO::-moz-range-thumb {
+        border: 4px solid #882c29;
+    }
+
     .slider {
-        mix-blend-mode: lighten;
-        background: #444444;
+        background: #444
     }
 
     .slider::-webkit-slider-thumb {
         box-shadow: -100vw 0 0 100vw #44607a;
         border-left: 20px solid #44607a;
-        border-right: 20px solid #444444;
+        border-right: 20px solid #444
     }
 
     .slider::-moz-range-thumb {
         box-shadow: -100vw 0 0 100vw #44607a;
         border-left: 20px solid #44607a;
-        border-right: 20px solid #444444;
+        border-right: 20px solid #444
     }
 
     .npSl::-webkit-slider-thumb {

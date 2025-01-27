@@ -87,6 +87,7 @@ bool doingItOnce = true;
 bool wasConnected = false;
 StaticJsonDocument<1024> Jcommand;
 String receiveTopic;
+String GPIOStates;
 
 // Flag for Saving Data
 bool shouldSaveConfig = false;
@@ -110,8 +111,8 @@ bool isFading = false;
 
 //------------------GET TIME------------------------------------------------------------------
 // NTP Client to Get Time
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org");
+WiFiUDP udp;
+NTPClient timeClient(udp, "pool.ntp.org");
 
 // Variable to Save Current Epoch Time
 uint32_t epochTime;
@@ -435,6 +436,7 @@ void parseWsMessage(char* websockedMsg) {
     // Change the node IP address
     Serial.println(F("Changing node..."));
     ESPeasyIPchanged = toESPcommandStr;
+    GPIOStates = "";
     lastTime = millis() - (timerDelay - 500);  // Send JSON immediately
 
   } else if (sendOKStr == "kill") {
@@ -443,7 +445,7 @@ void parseWsMessage(char* websockedMsg) {
     GetJson();  // Retrieve JSON
     lastTime = millis();
 
-  } else if ((sendOKStr == "command" || sendOKStr == "dualcommand") && receiveLoop && notkilled) {
+  } else if ((sendOKStr == "command" || sendOKStr == "dualcommand" || sendOKStr == "G") && receiveLoop && notkilled) {
     // Handle command or dualcommand if conditions are met
     Serial.print("Time deviation: ");
     long timeDeviation = abs(static_cast<long>(getTime()) - static_cast<long>(receiveTime));
@@ -453,6 +455,9 @@ void parseWsMessage(char* websockedMsg) {
     if (timeDeviation <= 2) {
       if (sendOKStr == "command") {
         Command2ESP(toESPcommandStr);  // Send single command to ESP
+      } else if (sendOKStr == "G") {
+        sendGPIOStates(toESPcommandStr);  // Split and execute dual command
+        GPIOStates = toESPcommandStr;
       } else {
         splitCommand(toESPcommandStr);  // Split and execute dual command
       }
@@ -477,7 +482,11 @@ void splitCommand(const String& command) {
   String commandStr2 = command.substring(index + 1, length);
   Command2ESP(commandStr1);
   //maybe we should wait a little with sending the second command
-  Command2ESP(commandStr2);
+  if (isDigit(commandStr2[0]) && commandStr2.length() >= 7) {
+    sendGPIOStates(commandStr2);
+  } else {
+    Command2ESP(commandStr2);
+  }
 }
 
 
@@ -729,6 +738,8 @@ void loop() {
 void Command2ESP(const String& toESPcommand) {
   Serial.println();
   Serial.println(F("----------------------sending command to ESP...----------------------"));
+
+  // Build the URL for sending commands to the ESP
   String ESPeasyPath2 = "http://" + ESPeasyIPchanged + "/" + toESPcommand;
   Serial.println(ESPeasyPath2);
   http.begin(client, ESPeasyPath2);
@@ -748,12 +759,64 @@ void Command2ESP(const String& toESPcommand) {
   http.end();
 }
 
+//###################################################################################################
+//                                                                                    Poll GPIOstates
+//###################################################################################################
+// Function to send each sub-array via UDP
+void sendGPIOStates(const String& UDPMessage) {
+  Serial.println("Sending UDP gpio poll messages");
+  if (UDPMessage.length() < 7) { return; }
+  // Split string into sub-arrays using the semicolon as a delimiter
+  int startIdx = 0;
+  int endIdx = UDPMessage.indexOf(';');
 
+  //String deviceIp = WiFi.localIP();
+  int lastDot = WiFi.localIP().toString().lastIndexOf('.');  // Find third-to-last dot
 
+  while (startIdx < UDPMessage.length()) {
+    // Find the position of the next semicolon
+    endIdx = UDPMessage.indexOf(';', startIdx);
+
+    // If no semicolon is found, process the remaining substring until the end of the message
+    if (endIdx == -1) {
+      endIdx = UDPMessage.length();
+    }
+
+    // Extract the substring between startIdx and endIdx
+    String subArrayString = UDPMessage.substring(startIdx, endIdx);
+
+    // Split the substring into numbers
+    int numbers[4];
+    int numCount = 0;
+    int lastCommaIdx = -1;
+    for (int i = 0; i <= subArrayString.length(); i++) {
+      if (subArrayString[i] == ',' || i == subArrayString.length()) {
+        numbers[numCount++] = subArrayString.substring(lastCommaIdx + 1, i).toInt();
+        lastCommaIdx = i;
+      }
+    }
+
+    // Construct the UDP message and send it
+    String message = "SendTo," + String(numbers[1]) + ",\"taskvalueset," + String(numbers[2]) + "," + String(numbers[3]) + ",[Plugin#GPIO#Pinstate#" + String(numbers[4]) + "]\"";
+    String targetIP = WiFi.localIP().toString().substring(0, lastDot + 1) + String(numbers[0]);
+    udp.beginPacket(targetIP.c_str(), 8266);
+    udp.print(message);
+    udp.endPacket();
+
+    // Optional: Print to Serial for debugging
+    //Serial.println(deviceIp);
+    Serial.print(targetIP);
+    Serial.println("Sent: " + message);
+
+    // Move to the next sub-array (next startIdx)
+    startIdx = endIdx + 1;
+  }
+}
 //###################################################################################################
 //                                                                         GET json from ESPeasyIP...
 //###################################################################################################
 void GetJson() {
+  sendGPIOStates(GPIOStates);
   Serial.println();
   Serial.println(F("----------------------getting JSON from ESP...-----------------------"));
   Serial.println(ESPeasyIPchanged);
