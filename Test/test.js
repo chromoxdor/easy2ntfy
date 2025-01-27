@@ -1025,7 +1025,7 @@ function sliderChTS(event) {
         const eventBase = `event,${slClass1}Event=${slClass2.split(",")[1]}`;
 
         if (unitNr === unitNr1) {
-            getUrl(`${cmD}"${commandBase}" ${cmD}"${eventBase}"`, "dualcommand");
+            getUrl(`${cmD}${commandBase} ${cmD}${eventBase}`, "dualcommand");
             //getUrl(`${cmD}"${eventBase}"`);
         } else {
             getUrl(`${cmD}SendTo,${nNr},"${commandBase}" ${cmD}SendTo,${nNr},"${eventBase}"`, "dualcommand");
