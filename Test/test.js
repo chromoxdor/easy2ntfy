@@ -363,37 +363,60 @@ function jsonLimit() {
 //the worst and only way right now to somehow detect if we are in the same network
 // is to determine whenever a request through fetch is refused or timed out.
 //therefore the request points to an server without https capabilities (espeasy) and gets refused 
-async function testLocal(URL) {
-    const controller = new AbortController();
-    const timeout = 500; // Increased timeout to 5 seconds for better reliability.
-    console.log("URL:", URL)
-    setTimeout(() => controller.abort(), timeout);
+// async function testLocal(URL) {
+//     const controller = new AbortController();
+//     const timeout = 500; // Increased timeout to 5 seconds for better reliability.
+//     console.log("URL:", URL)
+//     setTimeout(() => controller.abort(), timeout);
 
+//     try {
+//         const response = await fetch(`https://${URL}`, {
+//             signal: controller.signal,
+//         });
+
+//         console.log(`Response status: ${response.status}`);
+//     } catch (error) {
+//         const errorMessage = error.message.toLowerCase();
+
+//         // Check for specific error keywords.
+//         if (!["failed", "attempting", "aborted"].some(v => errorMessage.includes(v))) {
+//             // Open fallback HTTP URL if the error is not related to connection failure.
+//             var answer = window.confirm("There might be a local instance of easyfetch. Do you want to open it?");
+//             if (answer) {
+//                 window.open(`http://${URL}`, "_self");
+//             }
+//             else {
+//                 console.log("abort the switiching")
+//             }
+//         } else {
+//             console.error("Fetch error:", error.message);
+//         }
+//     }
+//     switchLocal = false
+//     fetchJson();
+// }
+async function testlocal(URL, hostN) {
+    let controller = new AbortController();
+    setTimeout(() => controller.abort(), 500);
     try {
-        const response = await fetch(`http://${URL}`, {
+        response = await fetch('https://' + URL, {
             signal: controller.signal,
         });
-
-        console.log(`Response status: ${response.status}`);
+        console.log(response.status)
     } catch (error) {
-        const errorMessage = error.message.toLowerCase();
-
-        // Check for specific error keywords.
-        if (!["failed", "attempting", "aborted"].some(v => errorMessage.includes(v))) {
-            // Open fallback HTTP URL if the error is not related to connection failure.
+        console.error(error.toString().toLowerCase());
+        if (!error.toString().includes("aborted")) { 
             var answer = window.confirm("There might be a local instance of easyfetch. Do you want to open it?");
             if (answer) {
                 window.open(`http://${URL}`, "_self");
             }
             else {
-                console.log("abort the switiching")
+                console.log("abort the switiching");
             }
-        } else {
-            console.error("Fetch error:", error.message);
         }
+        else { fetchJson() }
     }
     switchLocal = false
-    fetchJson();
 }
 //#################################### PARSE JSON DATA ####################################
 
@@ -951,15 +974,25 @@ function checkDirection() {
 //##############################################################################################################
 function updateSlTS(event) {
     isittime = 0;
-    slider = event.target;
-    if (slider.id.slice(-1) == "L") { nuM = 1 } else { nuM = 2 }
-    const amount = slider.parentElement.closest(".slTimeSetWrap").firstElementChild.querySelector(".hAmount" + nuM);
-    const amount2 = slider.parentElement.closest(".slTimeSetWrap").firstElementChild.querySelector(".mAmount" + nuM);
-    var hours = Math.floor(slider.value / 60);
-    var minutes = slider.value % 60;
-    const padded = minutes.toString().padStart(2, "0");
+    const slider = event.target;
+    const isSetpoint = slider.id === "setpoint";
+    const slTimeSetWrap = slider.closest(".slTimeSetWrap");
+
+    if (isSetpoint) {
+        const amount = slTimeSetWrap.querySelector(".slTimeText .setT");
+        amount.textContent =  Number(slider.value).toFixed(1);
+        return;
+    }
+
+    const nuM = slider.id.slice(-1) === "L" ? 1 : 2;
+    const amount = slTimeSetWrap.querySelector(`.hAmount${nuM}`);
+    const amount2 = slTimeSetWrap.querySelector(`.mAmount${nuM}`);
+
+    const hours = Math.floor(slider.value / 60);
+    const minutes = slider.value % 60;
+
     amount.textContent = hours;
-    amount2.textContent = padded;
+    amount2.textContent = minutes.toString().padStart(2, "0");
 }
 
 //##############################################################################################################
