@@ -369,45 +369,31 @@ async function testLocal(URL) {
     console.log("URL:", URL)
     setTimeout(() => controller.abort(), timeout);
 
-    response = await fetch(`http://${URL}:80`, {
-        signal: controller.signal,
-        mode: "no-cors"
-    }).then((response) => {
-        console.log(URL, "available");
-        console.warn("Opening local URL...");
-        var answer = window.confirm("There might be a local instance of easyfetch. Do you want to open it?");
-        if (answer) {
-            window.open(`http://${URL}`, "_self");
-        }
-        else {
-
-        }
-        
-
-    })
-        .catch((err) => {
-            if (["failed", "attempting"].some(v => (err.message).toLowerCase().includes(v))) { console.log(URL, "rejected"); }
-            else if (err.message.toLowerCase().includes("aborted")) { console.log(URL, "offline"); }
+    try {
+        const response = await fetch(`http://${URL}`, {
+            signal: controller.signal,
         });
-    // try {
-    //     const response = await fetch(`https://${URL}`, {
-    //         signal: controller.signal,
-    //     });
 
-    //     console.log(`Response status: ${response.status}`);
-    // } catch (error) {
-    //     const errorMessage = error.message.toLowerCase();
+        console.log(`Response status: ${response.status}`);
+    } catch (error) {
+        const errorMessage = error.message.toLowerCase();
 
-    //     // Check for specific error keywords.
-    //     if (!["failed", "attempting", "aborted"].some(v => errorMessage.includes(v))) {
-    //         // Open fallback HTTP URL if the error is not related to connection failure.
-    //         console.warn("Opening fallback HTTP URL...");
-    //         window.open(`http://${URL}`, "_self");
-    //     } else {
-    //         console.error("Fetch error:", error.message);
-    //         fetchJson();
-    //     }
-    // }
+        // Check for specific error keywords.
+        if (!["failed", "attempting", "aborted"].some(v => errorMessage.includes(v))) {
+            // Open fallback HTTP URL if the error is not related to connection failure.
+            var answer = window.confirm("There might be a local instance of easyfetch. Do you want to open it?");
+            if (answer) {
+                window.open(`http://${URL}`, "_self");
+            }
+            else {
+                console.log("abort the switiching")
+            }
+        } else {
+            console.error("Fetch error:", error.message);
+        }
+    }
+    switchLocal = false
+    fetchJson();
 }
 //#################################### PARSE JSON DATA ####################################
 
