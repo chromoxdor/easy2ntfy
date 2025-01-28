@@ -685,6 +685,7 @@ void loop() {
         Serial.println(F("WebSocket Connected!"));
       } else {
         Serial.println(F("WebSocket Connection Failed!"));
+        webSocket.begin(ntfyUrl, 80, "/" + receiveTopic + "/ws");
       }
     }
   }
@@ -804,9 +805,9 @@ void sendGPIOStates(const String& UDPMessage) {
     udp.endPacket();
 
     // Optional: Print to Serial for debugging
-    //Serial.println(deviceIp);
-    Serial.print(targetIP);
-    Serial.println("Sent: " + message);
+
+    //Serial.print(targetIP);
+    //Serial.println("Sent: " + message);
 
     // Move to the next sub-array (next startIdx)
     startIdx = endIdx + 1;
@@ -932,7 +933,7 @@ void compressData(const String& inputPayload) {
     Serial.println(F("Memory allocation failed for inputBuffer or compressedBuffer."));
     return;  // Exit if there is not enough memory
   }
-  Serial.print(F("Total Memory Needed: "));
+  Serial.print(F("Original size:: "));
   Serial.println(inputSize + WORK_MEM_SIZE);
   // Check if there is enough free memory to proceed with compression
   if (ESP.getFreeHeap() < (inputSize + WORK_MEM_SIZE)) {
@@ -943,7 +944,7 @@ void compressData(const String& inputPayload) {
     return;
   }
 #else
-  Serial.print(F("Total Memory Needed: "));
+  Serial.print(F("Original size:: "));
   Serial.println(inputSize);
   // Check if there is enough free memory to proceed with compression
   if (ESP.getFreeHeap() < inputSize * 1.5) {
@@ -965,8 +966,8 @@ void compressData(const String& inputPayload) {
 
   if (compressResult == LZO_E_OK) {
     Serial.println(F("Compression successful!"));
-    Serial.print(F("Original size: "));
-    Serial.println(inputSize);
+    //Serial.print(F("Original size: "));
+    //Serial.println(inputSize);
     Serial.print(F("Compressed size: "));
     Serial.println(compressedSize);
   } else {
