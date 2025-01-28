@@ -395,7 +395,7 @@ function jsonLimit() {
 //     switchLocal = false
 //     fetchJson();
 // }
-async function testlocal(URL, hostN) {
+async function testLocal(URL, hostN) {
     let controller = new AbortController();
     setTimeout(() => controller.abort(), 500);
     try {
