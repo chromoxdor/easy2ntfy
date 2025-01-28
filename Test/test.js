@@ -398,13 +398,14 @@ function jsonLimit() {
 async function testLocal(URL, hostN) {
     let controller = new AbortController();
     setTimeout(() => controller.abort(), 500);
+    URL = "192.168.1.118"
     try {
         response = await fetch('https://' + URL, {
             signal: controller.signal,
         });
         console.log(response.status)
     } catch (error) {
-        console.error(error.toString().toLowerCase());
+        console.log(error.message.toString().toLowerCase());
         if (!error.toString().includes("aborted")) { 
             var answer = window.confirm("There might be a local instance of easyfetch. Do you want to open it?");
             if (answer) {
