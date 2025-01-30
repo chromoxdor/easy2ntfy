@@ -48,11 +48,13 @@ body {
 }
 
 #unitId {
-    top: 2%;
+    padding: 1vh;
+    width: 100vw;
     z-index: 1;
     display: flex;
     position: fixed;
     transition: 0.3s ease-out;
+    justify-content: center;
 }
 
 #allList {
@@ -791,7 +793,8 @@ button.remove {
         background: #000
     }
 
-    #opener {
+    #opener,
+    #unitId {
         background: #000000a8
     }
 

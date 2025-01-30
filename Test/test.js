@@ -406,7 +406,6 @@ async function testLocal(URL, hostN) {
     } catch (error) {
         const em = error.message.toString().toLowerCase()
         console.log(em);
-        alert(em);
         if (!em.includes("aborted")) { 
             var answer = window.confirm("There might be a local instance of easyfetch. Do you want to open it?");
             if (answer) {
