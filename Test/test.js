@@ -1312,7 +1312,7 @@ function getNodes(sensorName, allNodes, hasIt) {
         i++
         if (node.nr == myParam) { if (hasParams) { nodeChange(i); hasParams = 0; } }
         //if (node.nr === unitNr1) { if (node.nr === unitNr) { styleN = "&#8857;&#xFE0E;"; } else { styleN = "&#8858;&#xFE0E;"; } }
-        if (node.nr === unitNr) { styleN = "&#183;&#xFE0E;"; } else { styleN = ""; }
+        if (node.nr === unitNr) { styleN = "&#x2299;&#xFE0E;"; } else { styleN = ""; }
         html4 += '<div class="menueItem"><div class="serverUnit" style="text-align: center;">' + styleN + '</div><div id="' + node.name + '" class="nc" onclick="nodeChange(' + i + ');">' + node.name + '<span class="numberUnit">' + node.nr + '</span></div></div>';
         if (sensorName || allNodes) {
             if (allNodes) {

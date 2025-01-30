@@ -511,7 +511,8 @@ input[type=number] {
 }
 
 .numberUnit {
-    font-size: 10px;
+    padding-left: 2px;
+    font-size: 12px;
     color: #818181
 }
 
@@ -520,14 +521,14 @@ input[type=number] {
 }
 
 .nc {
-    word-break: break-all
+    word-break: break-word
 }
 
 .sideNbtn {
     position: absolute;
     bottom: 2%;
     font-size: 35px;
-    color: #b3b3b3;
+    color: #b3b3b3
 }
 
 #openSys {
@@ -546,6 +547,7 @@ input[type=number] {
     transition: .2s;
     width: max-content;
     max-width: 280px;
+    padding: 6px
 }
 
 #menueList::-webkit-scrollbar {
@@ -554,7 +556,7 @@ input[type=number] {
 
 #menueList div {
     padding: 3px;
-    font-size: 25px;
+    font-size: 25px
 }
 
 #sysInfo {
