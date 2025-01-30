@@ -1706,18 +1706,16 @@ function convertPassphraseToKey(passphrase) {
 
 function receiveNote(S) {
     const colors = {
-        G: "rgb(82, 255, 195)",
-        Y: "rgb(236, 255, 89)",
+        G: "rgb(0, 255, 0)",
+        B: "rgb(255, 251, 0)",
+        R: "rgb(255, 0, 0)",
         B: "rgb(0, 81, 255)",
-        R: "#e60073",
         N: "none",
     };
 
-    const createBoxShadow = (color) =>
-        Array.from({ length: 7 }, (_, i) => `0 0 ${10 * (i + 1)}px ${color}`).join(", ");
-
+    const box = "inset 0px 6px 5px 0px ";
     const receiveNoteEl = document.getElementById("unitId");
-    receiveNoteEl.style.textShadow = S === 0 || S === "N" ? colors.N : createBoxShadow(colors[S]);
+    receiveNoteEl.style.boxShadow = S === 0 || S === "N" ? colors.N : box+colors[S];
     if (S) setTimeout(() => receiveNote(0), 300);
 }
 
