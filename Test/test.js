@@ -36,6 +36,15 @@ var initIP;
 const cmD = "control?cmd=";
 var coloumnSet;
 var myJson
+const cP = [
+    " #e6b85b", " #a56f9f",
+    " #b48555", " #102e42",
+    " #ac632f", " #4b9b8a",
+    " #116a6f", " #333c57",
+    " #a43f28", " #38b764",
+    " #698c5a", " #553630",
+    " #5d275d"
+];
 var ntfyJson;
 var ntfyChannel = '';
 var selectVal;
@@ -406,7 +415,7 @@ async function testLocal(URL, hostN) {
     } catch (error) {
         const em = error.message.toString().toLowerCase()
         console.log(em);
-        if (!em.includes("aborted")) { 
+        if (!em.includes("aborted")) {
             var answer = window.confirm("There might be a local instance of easyfetch. Do you want to open it?");
             if (answer) {
                 window.open(`http://${URL}`, "_self");
@@ -494,21 +503,31 @@ function fetchJson() {
         html += '<div class="sensorset clickables"><div  class="sensors" style="font-weight:bold;">no tasks configured...</div>';
     }
     else {
+        let c = 0;
+        const [, bgColor] = getComputedStyle(document.body).backgroundColor.match(/\d+/g);
+        const tBGArray = cP.map(color => `background:${color}${bgColor === "0" ? "80" : ""}`);
+
         for (const sensor of myJson.Sensors) {
             //myJson.Sensors.forEach(sensor => {
             var bigSpan = "";
             sensorName = sensor.TaskName;
+
             if (sensorName.includes("?")) { //if a tile has a custom color
-                const [, bgColor] = getComputedStyle(document.body).backgroundColor.match(/\d+/g);
                 tBG = `background:#${sensorName.split("?")[1]}${bgColor === "0" ? "80" : ""}`;
                 sensorName = sensorName.split("?")[0];
             } else {
-                tBG = "";
+                if (sensor.TaskDeviceNumber != 1 || (sensorName).includes("dButtons")) {
+                    tBG = tBGArray[c];
+                    c = (c + 1) % tBGArray.length; // Loop back to 0 when reaching the end
+                } else {
+                    tBG = "";
+                }
             }
             //this is a bit to confusing when creating events for now
             var sensorName3 = changeNN(sensorName) //replace "_" and "." in device and "BigValue" names
 
-            const htS1 = `sensorset clickables" style="${tBG}" onclick="playSound(3000), `;
+            const htS1 = `sensorset clickables" onclick="playSound(3000), `;
+
             const htS2 = `<div id="${sensorName}" class="sensors" style="font-weight:bold;">${sensorName3}</div>`;
             exC = [87, 38, 41, 42].includes(sensor.TaskDeviceNumber); //all PluginNR in an array that need to be excluded 
             exC2 = !sensor.Type?.includes("Display")
@@ -676,39 +695,45 @@ function fetchJson() {
                             else { wasUsed = false; }
                         }
                         //big values---------------------------------------------------------
-                        if ((sensorName).includes("bigVal")) {
+                        if (sensorName.includes("bigVal")) {
                             wasUsed = true;
-                            let htmlBig1 = '<div class="valuesBig" style="font-weight:bold;text-align:left;">';
-                            if (firstItem == true) {
-                                html3 += '<div class="bigNum">';
-                                if (bigLength < sensor.TaskValues.length) { bigLength = sensor.TaskValues.length };
+                            let htmlBig1 = `<div class="valuesBig" style="font-weight:bold;text-align:left;">`;
+
+                            if (firstItem) {
+                                html3 += `<div class="bigNum">`;
+                                bigLength = Math.max(bigLength, sensor.TaskValues.length);
                             }
-                            htmlBig2 = '<div style="' + tBG + '" class="bigNumWrap '
-                            if (!(iN).includes("XX")) {
-                                if (sensor.TaskValues.length === 3 && !(sensor.TaskValues).some(item => iN === 'XX')) { if (window.innerWidth < 450 || document.cookie.includes("Two=1")) { bigSpan = "bigSpan" } }
-                                if ((sensorName).includes("bigValC")) {
-                                    html3 += htmlBig2 + 'bigC ' + bigSpan + '">';
+
+                            let htmlBig2 = `<div style="${tBG}" class="bigNumWrap `;
+
+                            if (!iN.includes("XX")) {
+                                if (sensor.TaskValues.length === 3 && !sensor.TaskValues.some(item => iN === 'XX')) {
+                                    if (window.innerWidth < 450 || document.cookie.includes("Two=1")) {
+                                        bigSpan = "bigSpan";
+                                    }
                                 }
-                                else {
-                                    html3 += htmlBig2 + bigSpan + '">';
+
+                                html3 += htmlBig2 + bigSpan + `">`;
+                                let htS3 = `${htmlBig1}${iN}</div><div id="`;
+
+                                if (["Clock", "Uhr"].some(v => iN.includes(v))) {
+                                    html3 += `${htS3}clock" class="valueBig">${clockBig}</div></div>`;
                                 }
-                                htS3 = htmlBig1 + iN + '</div><div id="'
-                                if (["Clock", "Uhr", "Zeit", "Time"].some(v => (iN).includes(v))) { //(item.Name).toLowerCase().includes(v)
-                                    html3 += htS3 + 'clock" class="valueBig">' + clockBig + '</div></div>';
+                                else if (["Datum"].some(v => iN.toLowerCase().includes(v))) {
+                                    html3 += `${htS3}date" class="valueBig">${dateD}.${dateM}</div></div>`;
                                 }
-                                else if ((iN).toLowerCase().includes("datum")) {
-                                    html3 += htS3 + 'date" class="valueBig">' + dateD + '.' + dateM.toString() + '</div></div>';
+                                else if (["Date"].some(v => iN.toLowerCase().includes(v))) {
+                                    html3 += `${htS3}date" class="valueBig">${dateM}-${dateD}</div></div>`;
                                 }
-                                else if ((iN).toLowerCase().includes("date")) {
-                                    html3 += htS3 + 'date" class="valueBig">' + dateM + '-' + dateD.toString() + '</div></div>';
+                                else if (["Year", "Jahr"].some(v => iN.toLowerCase().includes(v))) {
+                                    html3 += `${htS3}year" class="valueBig">${dateY}</div></div>`;
                                 }
-                                else if (["year", "jahr"].some(v => (iN).toLowerCase().includes(v))) {
-                                    html3 += htS3 + 'year" class="valueBig">' + dateY + '</div></div>';
+                                else if (iN.includes("noVal")) {
+                                    html3 += `${htmlBig1}</div><div class="valueBig"></span></div></div>`;
                                 }
-                                else if (iN.includes("noVal")) { html3 += htmlBig1 + '</div><div class="valueBig"></span></div></div>'; }
                                 else {
                                     itemN = changeNN(itemN);
-                                    html3 += htmlBig1 + itemN + '</div><div class="valueBig">' + num2Value + '<span style="background:none;padding-right: 1%;">' + kindN + '</span></div></div>';
+                                    html3 += `${htmlBig1}${itemN}</div><div class="valueBig">${num2Value}<span style="background:none;padding-right: 1%;">${kindN}</span></div></div>`;
                                 }
                             }
                         }
@@ -721,8 +746,9 @@ function fetchJson() {
                                 }
                             }
                             else {
-                                if (firstItem == true) { html1 += '<div class="' + htS1 + 'buttonClick(\'' + sensorName + '\')">' + htS2; }
-                                if (!item.Name.toString().includes("XX")) {
+                                if (firstItem === true) {
+                                    html1 += `<div class="${htS1}buttonClick('${sensorName}')" style="${tBG}">${htS2}`;
+                                } if (!item.Name.toString().includes("XX")) {
                                     //else if (iN.includes("noVal")) { html += '<div class="values therest"><div>&nbsp;</div><div></div></div>'; }
                                     if (sensor.TaskDeviceNumber == 81) { html1 += '<div class="cron"><div>' + itemN + '</div><div style="font-size: 10pt;">' + item.Value + '</div></div>'; }
                                     else { html1 += '<div class=row><div class=odd>' + itemN + '</div><div class=even>' + num2Value + ' ' + kindN + '</div></div>'; }
@@ -759,7 +785,7 @@ function fetchJson() {
     };
     //Things that only need to run once
     if (firstRun) {
-        if (userAgent.match(/iPhone/i)) {
+        if (/iPhone/i.test(window.navigator.userAgent)) {
             document.body.style.height = "101vh";
         }
         //setInterval(fetchJson, 2000);
@@ -770,7 +796,7 @@ function fetchJson() {
         //longPressS();
         //longPressN();
         addEonce()
-        firstRun = 0;
+        firstRun = false;
     }
     /*if (unitNr === unitNr1) { styleU = "&#8858;"; }
     else { styleU = ""; }*/
@@ -846,7 +872,7 @@ function changeNN(nn) {
 //##############################################################################################################
 function changeCss() {
     let x = "auto ";
-    let m = null;
+    let m = "";
     let coloumnSet, y, z;
     var numSl = document.querySelectorAll('input[type=range]').length;
     if (!numSl) { document.getElementById("allList").classList.add('allExtra'); }
@@ -884,7 +910,7 @@ function changeCss() {
         if (bigLength == 1 || (bigLength == 0 && numSet == 1)) {
             coloumnSet = 1
             y = x;
-            m = "important"
+            m = "!important"
         }
         else { coloumnSet = 2; y = x + x }
     };
@@ -981,7 +1007,7 @@ function updateSlTS(event) {
 
     if (isSetpoint) {
         const amount = slTimeSetWrap.querySelector(".slTimeText .setT");
-        amount.textContent =  Number(slider.value).toFixed(1);
+        amount.textContent = Number(slider.value).toFixed(1);
         return;
     }
 
@@ -1042,7 +1068,6 @@ function updateSlider(event) {
 //##############################################################################################################
 //      TIMESLIDER SEND EVENT ON CHANGE
 //##############################################################################################################
-
 function sliderChTS(event) {
     playSound(4000);
     const slider = event.target;
@@ -1394,7 +1419,7 @@ function resizeText() {
 
 //##############################################################################################################
 //      FULLSCREEN
-//##############################################################################################################function launchFs(element) {
+//##############################################################################################################
 function launchFs(element) {
     element.requestFullscreen();
 }
@@ -1713,9 +1738,9 @@ function receiveNote(S) {
         N: "none",
     };
 
-    const box = "inset 0px 6px 5px 0px ";
+    const box = "inset 0px 11px 17px -11px ";
     const receiveNoteEl = document.getElementById("unitId");
-    receiveNoteEl.style.boxShadow = S === 0 || S === "N" ? colors.N : box+colors[S];
+    receiveNoteEl.style.boxShadow = S === 0 || S === "N" ? colors.N : box + colors[S];
     if (S) setTimeout(() => receiveNote(0), 300);
 }
 
@@ -1743,7 +1768,7 @@ const manifest = {
     theme_color: "#000000",
     icons: [
         {
-            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192'%3E%3Crect x='0' y='0' rx='6' ry='6' width='192' height='192' style='fill:%233c3c3b'/%3E%3C/svg%3E",
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192'%3E%3Crect x='0' y='0' rx='6' ry='6' width='192' height='192' style='fill:%233c3c3b'/%3E%3Ctext x='50%' y='50%' font-size='48' font-family='Arial' fill='white' text-anchor='middle' alignment-baseline='middle'%3Ee2n%3C/text%3E%3C/svg%3E",
             sizes: "192x192",
             type: "image/svg+xml"
         }
@@ -1801,4 +1826,4 @@ window.addEventListener("beforeinstallprompt", (event) => {
 
 //compressor and long press
 var lzo1x = function () { "use strict"; var t = new function () { this.blockSize = 131072, this.minNewSize = this.blockSize, this.maxSize = 0, this.OK = 0, this.INPUT_OVERRUN = -4, this.OUTPUT_OVERRUN = -5, this.LOOKBEHIND_OVERRUN = -6, this.EOF_FOUND = -999, this.ret = 0, this.buf = null, this.buf32 = null, this.out = new Uint8Array(262144), this.cbl = 0, this.ip_end = 0, this.op_end = 0, this.t = 0, this.ip = 0, this.op = 0, this.m_pos = 0, this.m_len = 0, this.m_off = 0, this.dv_hi = 0, this.dv_lo = 0, this.dindex = 0, this.ii = 0, this.jj = 0, this.tt = 0, this.v = 0, this.dict = new Uint32Array(16384), this.emptyDict = new Uint32Array(16384), this.skipToFirstLiteralFun = !1, this.returnNewBuffers = !0, this.setBlockSize = function (t) { return "number" == typeof t && !isNaN(t) && parseInt(t) > 0 && (this.blockSize = parseInt(t), !0) }, this.setOutputSize = function (t) { return "number" == typeof t && !isNaN(t) && parseInt(t) > 0 && (this.out = new Uint8Array(parseInt(t)), !0) }, this.setReturnNewBuffers = function (t) { this.returnNewBuffers = !!t }, this.applyConfig = function (i) { void 0 !== i && (void 0 !== i.outputSize && t.setOutputSize(i.outputSize), void 0 !== i.blockSize && t.setBlockSize(i.blockSize)) }, this.ctzl = function (t) { var i; return 1 & t ? i = 0 : (i = 1, 0 == (65535 & t) && (t >>= 16, i += 16), 0 == (255 & t) && (t >>= 8, i += 8), 0 == (15 & t) && (t >>= 4, i += 4), 0 == (3 & t) && (t >>= 2, i += 2), i -= 1 & t), i }, this.extendBuffer = function () { var t = new Uint8Array(this.minNewSize + (this.blockSize - this.minNewSize % this.blockSize)); t.set(this.out), this.out = t, this.cbl = this.out.length }, this.match_next = function () { this.minNewSize = this.op + 3, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.buf[this.ip++], this.t > 1 && (this.out[this.op++] = this.buf[this.ip++], this.t > 2 && (this.out[this.op++] = this.buf[this.ip++])), this.t = this.buf[this.ip++] }, this.match_done = function () { return this.t = 3 & this.buf[this.ip - 2], this.t }, this.copy_match = function () { this.t += 2, this.minNewSize = this.op + this.t, this.minNewSize > this.cbl && this.extendBuffer(); do { this.out[this.op++] = this.out[this.m_pos++] } while (--this.t > 0) }, this.copy_from_buf = function () { this.minNewSize = this.op + this.t, this.minNewSize > this.cbl && this.extendBuffer(); do { this.out[this.op++] = this.buf[this.ip++] } while (--this.t > 0) }, this.match = function () { for (; ;) { if (this.t >= 64) this.m_pos = this.op - 1 - (this.t >> 2 & 7) - (this.buf[this.ip++] << 3), this.t = (this.t >> 5) - 1, this.copy_match(); else if (this.t >= 32) { if (this.t &= 31, 0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 31 + this.buf[this.ip++] } this.m_pos = this.op - 1 - (this.buf[this.ip] >> 2) - (this.buf[this.ip + 1] << 6), this.ip += 2, this.copy_match() } else if (this.t >= 16) { if (this.m_pos = this.op - ((8 & this.t) << 11), this.t &= 7, 0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 7 + this.buf[this.ip++] } if (this.m_pos -= (this.buf[this.ip] >> 2) + (this.buf[this.ip + 1] << 6), this.ip += 2, this.m_pos === this.op) return this.state.outputBuffer = !0 === this.returnNewBuffers ? new Uint8Array(this.out.subarray(0, this.op)) : this.out.subarray(0, this.op), this.EOF_FOUND; this.m_pos -= 16384, this.copy_match() } else this.m_pos = this.op - 1 - (this.t >> 2) - (this.buf[this.ip++] << 2), this.minNewSize = this.op + 2, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos]; if (0 === this.match_done()) return this.OK; this.match_next() } }, this.decompress = function (t) { const i = Date.now(); if (this.state = t, this.buf = this.state.inputBuffer, this.cbl = this.out.length, this.ip_end = this.buf.length, this.t = 0, this.ip = 0, this.op = 0, this.m_pos = 0, this.skipToFirstLiteralFun = !1, this.buf[this.ip] > 17) if (this.t = this.buf[this.ip++] - 17, this.t < 4) { if (this.match_next(), this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret } else this.copy_from_buf(), this.skipToFirstLiteralFun = !0; for (; ;) { if (Date.now() - i > 1e3) throw new Error("Decompression timed out"); if (this.skipToFirstLiteralFun) this.skipToFirstLiteralFun = !1; else { if (this.t = this.buf[this.ip++], this.t >= 16) { if (this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret; continue } if (0 === this.t) { for (; 0 === this.buf[this.ip];)this.t += 255, this.ip++; this.t += 15 + this.buf[this.ip++] } this.t += 3, this.copy_from_buf() } if (this.t = this.buf[this.ip++], this.t < 16) { if (this.m_pos = this.op - 2049, this.m_pos -= this.t >> 2, this.m_pos -= this.buf[this.ip++] << 2, this.minNewSize = this.op + 3, this.minNewSize > this.cbl && this.extendBuffer(), this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos++], this.out[this.op++] = this.out[this.m_pos], 0 === this.match_done()) continue; this.match_next() } if (this.ret = this.match(), this.ret !== this.OK) return this.ret === this.EOF_FOUND ? this.OK : this.ret } return this.OK }, this._compressCore = function () { for (this.ip_start = this.ip, this.ip_end = this.ip + this.ll - 20, this.jj = this.ip, this.ti = this.t, this.ip += this.ti < 4 ? 4 - this.ti : 0, this.ip += 1 + (this.ip - this.jj >> 5); !(this.ip >= this.ip_end);)if (this.dv_lo = this.buf[this.ip] | this.buf[this.ip + 1] << 8, this.dv_hi = this.buf[this.ip + 2] | this.buf[this.ip + 3] << 8, this.dindex = ((17053 * this.dv_lo >>> 16) + 17053 * this.dv_hi + 6180 * this.dv_lo & 65535) >>> 2, this.m_pos = this.ip_start + this.dict[this.dindex], this.dict[this.dindex] = this.ip - this.ip_start, (this.dv_hi << 16) + this.dv_lo == (this.buf[this.m_pos] | this.buf[this.m_pos + 1] << 8 | this.buf[this.m_pos + 2] << 16 | this.buf[this.m_pos + 3] << 24)) { if (this.jj -= this.ti, this.ti = 0, this.v = this.ip - this.jj, 0 !== this.v) if (this.v <= 3) { this.out[this.op - 2] |= this.v; do { this.out[this.op++] = this.buf[this.jj++] } while (--this.v > 0) } else { if (this.v <= 18) this.out[this.op++] = this.v - 3; else { for (this.tt = this.v - 18, this.out[this.op++] = 0; this.tt > 255;)this.tt -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.tt } do { this.out[this.op++] = this.buf[this.jj++] } while (--this.v > 0) } if (this.m_len = 4, this.buf[this.ip + this.m_len] === this.buf[this.m_pos + this.m_len]) do { if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.m_len += 1, this.buf[this.ip + this.m_len] !== this.buf[this.m_pos + this.m_len]) break; if (this.ip + this.m_len >= this.ip_end) break } while (this.buf[this.ip + this.m_len] === this.buf[this.m_pos + this.m_len]); if (this.m_off = this.ip - this.m_pos, this.ip += this.m_len, this.jj = this.ip, this.m_len <= 8 && this.m_off <= 2048) this.m_off -= 1, this.out[this.op++] = this.m_len - 1 << 5 | (7 & this.m_off) << 2, this.out[this.op++] = this.m_off >> 3; else if (this.m_off <= 16384) { if (this.m_off -= 1, this.m_len <= 33) this.out[this.op++] = 32 | this.m_len - 2; else { for (this.m_len -= 33, this.out[this.op++] = 32; this.m_len > 255;)this.m_len -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.m_len } this.out[this.op++] = this.m_off << 2, this.out[this.op++] = this.m_off >> 6 } else { if (this.m_off -= 16384, this.m_len <= 9) this.out[this.op++] = 16 | this.m_off >> 11 & 8 | this.m_len - 2; else { for (this.m_len -= 9, this.out[this.op++] = 16 | this.m_off >> 11 & 8; this.m_len > 255;)this.m_len -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.m_len } this.out[this.op++] = this.m_off << 2, this.out[this.op++] = this.m_off >> 6 } } else this.ip += 1 + (this.ip - this.jj >> 5); this.t = this.ll - (this.jj - this.ip_start - this.ti) }, this.compress = function (t) { for (this.state = t, this.ip = 0, this.buf = this.state.inputBuffer, this.maxSize = this.buf.length + Math.ceil(this.buf.length / 16) + 64 + 3, this.maxSize > this.out.length && (this.out = new Uint8Array(this.maxSize)), this.op = 0, this.l = this.buf.length, this.t = 0; this.l > 20 && (this.ll = this.l <= 49152 ? this.l : 49152, !(this.t + this.ll >> 5 <= 0));)this.dict.set(this.emptyDict), this.prev_ip = this.ip, this._compressCore(), this.ip = this.prev_ip + this.ll, this.l -= this.ll; if (this.t += this.l, this.t > 0) { if (this.ii = this.buf.length - this.t, 0 === this.op && this.t <= 238) this.out[this.op++] = 17 + this.t; else if (this.t <= 3) this.out[this.op - 2] |= this.t; else if (this.t <= 18) this.out[this.op++] = this.t - 3; else { for (this.tt = this.t - 18, this.out[this.op++] = 0; this.tt > 255;)this.tt -= 255, this.out[this.op++] = 0; this.out[this.op++] = this.tt } do { this.out[this.op++] = this.buf[this.ii++] } while (--this.t > 0) } return this.out[this.op++] = 17, this.out[this.op++] = 0, this.out[this.op++] = 0, this.state.outputBuffer = !0 === this.returnNewBuffers ? new Uint8Array(this.out.subarray(0, this.op)) : this.out.subarray(0, this.op), this.OK } }; return { setBlockSize: function (i) { return t.setBlockSize(i) }, setOutputEstimate: function (i) { return t.setOutputSize(i) }, setReturnNewBuffers: function (i) { t.setReturnNewBuffers(i) }, compress: function (i, s) { return void 0 !== s && t.applyConfig(s), t.compress(i) }, decompress: function (i, s) { return void 0 !== s && t.applyConfig(s), t.decompress(i) } } }();
-!function (e, t) { "use strict"; let n = null; const o = 10, a = 10; let i = { x: 0, y: 0 }; const s = "ontouchstart" in e || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, c = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator ? { down: "pointerdown", up: "pointerup", move: "pointermove", leave: "pointerleave" } : s ? { down: "touchstart", up: "touchend", move: "touchmove", leave: "touchleave" } : { down: "mousedown", up: "mouseup", move: "mousemove", leave: "mouseleave" }; "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, n = { bubbles: !1, cancelable: !1, detail: void 0 }) { const o = t.createEvent("CustomEvent"); return o.initCustomEvent(e, n.bubbles, n.cancelable, n.detail), o }, e.CustomEvent.prototype = e.Event.prototype); const u = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || (t => e.setTimeout(t, 1e3 / 60)); function r(e) { v(); const n = l(e), o = new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: (a = n, { clientX: a.clientX, clientY: a.clientY, offsetX: a.offsetX, offsetY: a.offsetY, pageX: a.pageX, pageY: a.pageY, screenX: a.screenX, screenY: a.screenY }) }); var a; this.dispatchEvent(o) || t.addEventListener("click", d, !0) } function l(e) { return e.changedTouches ? e.changedTouches[0] : e } function m(o) { v(); const a = o.target, i = parseInt(function (e, n, o) { for (; e && e !== t.documentElement;) { const t = e.getAttribute(n); if (t) return t; e = e.parentNode } return o }(a, "data-long-press-delay", "600"), 10); n = function (t, n) { if (!u) return e.setTimeout(t, n); const o = (new Date).getTime(), a = {}, i = () => { (new Date).getTime() - o >= n ? t() : a.value = u(i) }; return a.value = u(i), a }(r.bind(a, o), i) } function v() { var t; (t = n) && (e.cancelAnimationFrame || e.clearTimeout)(t.value), n = null } function d(e) { t.removeEventListener("click", d, !0), e.preventDefault(), e.stopImmediatePropagation() } t.addEventListener(c.down, (function (e) { const t = l(e); i = { x: t.clientX, y: t.clientY }, m(e) }), !0), t.addEventListener(c.move, (function (e) { const t = l(e); (Math.abs(i.x - t.clientX) > o || Math.abs(i.y - t.clientY) > a) && v() }), !0), t.addEventListener(c.up, v, !0), t.addEventListener(c.leave, v, !0), t.addEventListener("wheel", v, !0), t.addEventListener("scroll", v, !0), t.addEventListener("contextmenu", v, !0) }(window, document);
+!function (e, t) { "use strict"; let n = null; const o = 10, a = 10; let i = { x: 0, y: 0 }; const s = "ontouchstart" in e || navigator.maxTouchPoints > 0 || navigator.msMaxTouchPoints > 0, u = "PointerEvent" in e || e.navigator && "msPointerEnabled" in e.navigator ? { down: "pointerdown", up: "pointerup", move: "pointermove", leave: "pointerleave" } : s ? { down: "touchstart", up: "touchend", move: "touchmove", leave: "touchleave" } : { down: "mousedown", up: "mouseup", move: "mousemove", leave: "mouseleave" }; "function" != typeof e.CustomEvent && (e.CustomEvent = function (e, n = { bubbles: !1, cancelable: !1, detail: void 0 }) { const o = t.createEvent("CustomEvent"); return o.initCustomEvent(e, n.bubbles, n.cancelable, n.detail), o }, e.CustomEvent.prototype = e.Event.prototype); const c = e.requestAnimationFrame || e.webkitRequestAnimationFrame || e.mozRequestAnimationFrame || e.oRequestAnimationFrame || e.msRequestAnimationFrame || (t => e.setTimeout(t, 1e3 / 60)); function r(e) { v(); const n = l(e), o = new CustomEvent("long-press", { bubbles: !0, cancelable: !0, detail: (a = n, { clientX: a.clientX, clientY: a.clientY, offsetX: a.offsetX, offsetY: a.offsetY, pageX: a.pageX, pageY: a.pageY, screenX: a.screenX, screenY: a.screenY }) }); var a; this.dispatchEvent(o) || t.addEventListener("click", d, !0) } function l(e) { return e.changedTouches ? e.changedTouches[0] : e } function m(o) { v(); const a = o.target, i = parseInt(function (e, n, o) { for (; e && e !== t.documentElement;) { const t = e.getAttribute(n); if (t) return t; e = e.parentNode } return o }(a, "data-long-press-delay", "1000"), 10); n = function (t, n) { if (!c) return e.setTimeout(t, n); const o = (new Date).getTime(), a = {}, i = () => { (new Date).getTime() - o >= n ? t() : a.value = c(i) }; return a.value = c(i), a }(r.bind(a, o), i) } function v() { var t; (t = n) && (e.cancelAnimationFrame || e.clearTimeout)(t.value), n = null } function d(e) { t.removeEventListener("click", d, !0), e.preventDefault(), e.stopImmediatePropagation() } t.addEventListener(u.down, (function (e) { const t = l(e); i = { x: t.clientX, y: t.clientY }, m(e) }), !0), t.addEventListener(u.move, (function (e) { const t = l(e); (Math.abs(i.x - t.clientX) > o || Math.abs(i.y - t.clientY) > a) && v() }), !0), t.addEventListener(u.up, v, !0), t.addEventListener(u.leave, v, !0), t.addEventListener("wheel", v, !0), t.addEventListener("scroll", v, !0), navigator.userAgent.toLowerCase().includes("android") || t.addEventListener("contextmenu", v, !0) }(window, document);

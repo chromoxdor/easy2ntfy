@@ -69,6 +69,7 @@ body {
     padding-bottom: 40px;
     padding-top: 40px;
     color: #fff;
+    overflow-y: auto
 }
 
 #allList>div>:not(.bigNum) {
@@ -114,10 +115,6 @@ body {
     flex-wrap: nowrap;
     justify-content: space-between;
     box-shadow: 0 0 10px 1px #00000026;
-}
-
-.bigC {
-    background: #009c63;
 }
 
 #sensorList {
@@ -800,10 +797,6 @@ button.remove {
 
     .bigNumWrap {
         background: #444
-    }
-
-    .bigC {
-        background: #553630
     }
 
     .slTS {
