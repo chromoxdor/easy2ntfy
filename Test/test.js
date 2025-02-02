@@ -38,9 +38,9 @@ var coloumnSet;
 var myJson
 const cP = [
     " #e6b85b", " #a56f9f",
-    " #b48555", " #102e42",
+    " #b48555", " #1e567b",
     " #ac632f", " #4b9b8a",
-    " #116a6f", " #333c57",
+    " #116a6f", " #383861",
     " #a43f28", " #38b764",
     " #698c5a", " #553630",
     " #5d275d"
@@ -1758,6 +1758,8 @@ const findSubarrayIndex = (array, nr, last) => {
 //----------------------------------------------------------------------------------------------------------------
 
 // 1️⃣ Inject Web App Manifest (inline)
+const favicon = document.querySelector("link[rel='icon']").getAttribute("href");
+
 const manifest = {
     name: "easy2ntfy",
     short_name: "e2n",
@@ -1767,7 +1769,7 @@ const manifest = {
     background_color: "#000000",
     theme_color: "#000000",
     icons: [192, 256, 384, 512, 57, 72, 76, 120, 152, 167, 180, 1024].map((x) => ({
-        src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 125 125'%3E%3Ctitle%3EElement 20%3C/title%3E%3Crect width='125' height='124.72' rx='17' style='fill:%23686258;stroke:%231d1d1b;stroke-miterlimit:10;stroke-width:0.25px'/%3E%3Crect x='42' y='-2' width='11' height='98.09' rx='6' transform='translate(47 -20) rotate(45)' style='fill:%23ffd103'/%3E%3Crect x='57' y='-8' width='11' height='140.82' rx='6' transform='translate(62 -26) rotate(45)' style='fill:%23f28d22'/%3E%3Crect x='72' y='29' width='11' height='97.42' rx='6' transform='translate(78 -32) rotate(45)' style='fill:%23e9493e'/%3E%3Ccircle cx='101' cy='101' r='13' style='fill:%23fff'/%3E%3Crect x='27' y='5' width='11' height='54.98' rx='6' transform='translate(32 -13) rotate(45)' style='fill:%2325a843'/%3E%3C/svg%3E",
+        src: favicon,
         sizes: `${x}x${x}`,
         type: "image/svg+xml",
         purpose: "any"
