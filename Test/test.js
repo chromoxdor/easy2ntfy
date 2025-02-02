@@ -478,7 +478,7 @@ function fetchJson() {
         sysInfo['Internal Temperature'] && {
             label: 'Temp',
             value: `${sysInfo['Internal Temperature']}°C`,
-            style: `color: ${sysInfo['Internal Temperature'] > 35 ? 'red' : 'inherit'};`
+            style: `color: ${sysInfo['Internal Temperature'] > 55 ? 'red' : 'inherit'};`
         },
         { label: 'Free Ram', value: sysInfo['Free RAM'] },
         { label: 'Free Stack', value: sysInfo['Free Stack'] },
@@ -511,12 +511,13 @@ function fetchJson() {
             //myJson.Sensors.forEach(sensor => {
             var bigSpan = "";
             sensorName = sensor.TaskName;
+            taskEnabled = sensor.TaskEnabled.toString();
 
             if (sensorName.includes("?")) { //if a tile has a custom color
                 tBG = `background:#${sensorName.split("?")[1]}${bgColor === "0" ? "80" : ""}`;
                 sensorName = sensorName.split("?")[0];
             } else {
-                if (sensor.TaskDeviceNumber != 1 || (sensorName).includes("dButtons")) {
+                if ((sensor.TaskDeviceNumber != 1 || !(sensorName).includes("dButtons")) && taskEnabled === "true") {
                     tBG = tBGArray[c];
                     c = (c + 1) % tBGArray.length; // Loop back to 0 when reaching the end
                 } else {
@@ -531,7 +532,6 @@ function fetchJson() {
             const htS2 = `<div id="${sensorName}" class="sensors" style="font-weight:bold;">${sensorName3}</div>`;
             exC = [87, 38, 41, 42].includes(sensor.TaskDeviceNumber); //all PluginNR in an array that need to be excluded 
             exC2 = !sensor.Type?.includes("Display")
-            taskEnabled = sensor.TaskEnabled.toString();
 
             if (taskEnabled === "true" && !sensorName.includes("XX") && !exC && exC2 && !hasParams) {
                 if (sensor.TaskValues) {
@@ -1114,7 +1114,6 @@ function sliderChTS(event) {
 //##############################################################################################################
 //      NORMAL SLIDER SEND EVENT ON CHANGE
 //##############################################################################################################
-
 function sliderChange(event) {
     playSound(4000);
 

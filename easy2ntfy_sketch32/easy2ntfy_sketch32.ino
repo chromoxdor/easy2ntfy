@@ -10,6 +10,7 @@
 #include <HTTPClient.h>
 #include <DNSServer.h>
 #include <WebServer.h>
+#include <WiFiClientSecure.h>
 #include <WiFiManager.h>       // WiFi Manager [2.0.17]: https://github.com/tzapu/WiFiManager
 #include <ArduinoJson.h>       // [7.3.0] JSON Handling: https://github.com/bblanchon/ArduinoJson
 #include <WebSocketsClient.h>  // [2.6.1] https://github.com/Links2004/arduinoWebSockets
@@ -61,7 +62,8 @@ static uint8_t workMem[WORK_MEM_SIZE];  // Working memory for MiniLZO
 // WebSocket and Network Components
 WebSocketsClient webSocket;
 WiFiManager wm;
-WiFiClient client;
+//WiFiClient client;
+WiFiClientSecure client;
 HTTPClient http;
 WebServer server(80);
 

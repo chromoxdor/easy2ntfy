@@ -69,7 +69,6 @@ body {
     padding-bottom: 40px;
     padding-top: 40px;
     color: #fff;
-    overflow-y: auto
 }
 
 #allList>div>:not(.bigNum) {
@@ -84,6 +83,7 @@ body {
     display: grid;
     gap: 1vh;
     transition: .8s ease-out;
+    justify-content: center
 }
 
 .bigNum {
@@ -92,7 +92,7 @@ body {
     gap: 1vh;
     width: -webkit-fill-available;
     justify-content: start;
-    transition: .8s ease-out;
+    transition: .8s ease-out
 }
 
 .bigNumOne {
@@ -127,7 +127,6 @@ body {
 #sliderList {
     display: grid;
     gap: 1vh;
-    min-width: 288px;
     transition: .8s ease-out;
 }
 
@@ -728,9 +727,9 @@ button.remove {
         padding-bottom: 40px;
     }
 
-    #opener {
+    /* #opener {
         height: 40px
-    }
+    } */
 }
 
 @media screen and (max-width: 799px) {}
@@ -738,12 +737,13 @@ button.remove {
 @media screen and (max-width: 450px) {
     #allList {
         grid-row-gap: 5px;
-        min-width: unset
+        min-width: unset;
+        overflow-y: auto
     }
 
-    #opener {
+    /* #opener {
         height: 40px
-    }
+    } */
 
     #framie {
         padding-bottom: 40px
