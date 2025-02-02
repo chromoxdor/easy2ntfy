@@ -1767,8 +1767,8 @@ const manifest = {
     theme_color: "#000000",
     icons: [
         {
-            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='192' height='192'%3E%3Crect x='0' y='0' rx='6' ry='6' width='192' height='192' style='fill:%233c3c3b'/%3E%3Ctext x='50%' y='50%' font-size='48' font-family='Arial' fill='white' text-anchor='middle' alignment-baseline='middle'%3Ee2n%3C/text%3E%3C/svg%3E",
-            sizes: "192x192",
+            src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 125 125'%3E%3Ctitle%3EElement 20%3C/title%3E%3Crect width='125' height='124.72' rx='17' style='fill:%23686258;stroke:%231d1d1b;stroke-miterlimit:10;stroke-width:0.25px'/%3E%3Crect x='42' y='-2' width='11' height='98.09' rx='6' transform='translate(47 -20) rotate(45)' style='fill:%23ffd103'/%3E%3Crect x='57' y='-8' width='11' height='140.82' rx='6' transform='translate(62 -26) rotate(45)' style='fill:%23f28d22'/%3E%3Crect x='72' y='29' width='11' height='97.42' rx='6' transform='translate(78 -32) rotate(45)' style='fill:%23e9493e'/%3E%3Ccircle cx='101' cy='101' r='13' style='fill:%23fff'/%3E%3Crect x='27' y='5' width='11' height='54.98' rx='6' transform='translate(32 -13) rotate(45)' style='fill:%2325a843'/%3E%3C/svg%3E",
+            sizes: "57x57 72x72 76x76 120x120 152x152 167x167 180x180 1024x1024",
             type: "image/svg+xml"
         }
     ]
