@@ -1759,9 +1759,10 @@ const findSubarrayIndex = (array, nr, last) => {
 
 // 1️⃣ Inject Web App Manifest (inline)
 const manifest = {
-    name: "easyfetch_gateway",
-    short_name: "easy2ntfy",
-    start_url: `http://${window.location.hostname}${window.location.pathname}`,
+    name: "easy2ntfy",
+    short_name: "e2n",
+    scope: "./",
+    start_url: "./",
     display: "standalone",
     background_color: "#000000",
     theme_color: "#000000",
@@ -1769,7 +1770,7 @@ const manifest = {
         src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 125 125'%3E%3Ctitle%3EElement 20%3C/title%3E%3Crect width='125' height='124.72' rx='17' style='fill:%23686258;stroke:%231d1d1b;stroke-miterlimit:10;stroke-width:0.25px'/%3E%3Crect x='42' y='-2' width='11' height='98.09' rx='6' transform='translate(47 -20) rotate(45)' style='fill:%23ffd103'/%3E%3Crect x='57' y='-8' width='11' height='140.82' rx='6' transform='translate(62 -26) rotate(45)' style='fill:%23f28d22'/%3E%3Crect x='72' y='29' width='11' height='97.42' rx='6' transform='translate(78 -32) rotate(45)' style='fill:%23e9493e'/%3E%3Ccircle cx='101' cy='101' r='13' style='fill:%23fff'/%3E%3Crect x='27' y='5' width='11' height='54.98' rx='6' transform='translate(32 -13) rotate(45)' style='fill:%2325a843'/%3E%3C/svg%3E",
         sizes: `${x}x${x}`,
         type: "image/svg+xml",
-        purpose: "any maskable"
+        purpose: "any"
     }))
 };
 console.log(`http://${window.location.hostname}${window.location.pathname}?unit=1`);
