@@ -679,7 +679,7 @@ function fetchJson() {
                                 slT2 = (slT1 - Math.floor(slT1)) * 100;
                                 slT2 = slT2.toFixed(1)
                                 slT1 = (Math.floor(slT1) / 10).toFixed(1);
-                                if (Math.floor(slT1) < 10) { slT1 = "&nbsp;" + slT1.toString() }
+                                //if (Math.floor(slT1) < 10) { slT1N = "&nbsp;" + slT1.toString() }
                                 htmlSlider1 = 'type="range" min="' + slMin + '" max="' + slMax + '"  step="' + slStep + '" value="';
                                 thermoSliderAddon = '<div class="noI" style="z-index: 2; position: absolute">' + slName + '</div>'
                                 html2 += '<div id="' + slName + '" class="slTimeSetWrap ' + sensorName + ' ' + sensor.TaskNumber + ',' + item.ValueNumber + '" style="font-weight:bold;">' + thermoSliderAddon + '<div class="slTimeText"> <div class="even">&#9728;&#xFE0E;<span class="isT"> ' + slT1 + '</span>°C</div><div class="even">&#9737;&#xFE0E;<span class="setT"> ' + slT2 + '</span>°C</div></div><div class="slTimeSet"><input class="slTHU thermO ' + XI + '" ' + htmlSlider1 + slT2 + '" id="setpoint"><input class="slider noI thT" ' + htmlSlider1 + slT1 + '" id="' + slName + '"></div></div>';
