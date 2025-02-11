@@ -37,12 +37,12 @@ const cmD = "control?cmd=";
 var coloumnSet;
 var myJson
 const cP = [
-    " #e6b85b", " #a56f9f",
-    " #b48555", " #1e567b",
+    " #bd964a", " #a56f9f",
+    " #b37b47", " #1e567b",
     " #ac632f", " #4b9b8a",
     " #116a6f", " #383861",
     " #a43f28", " #38b764",
-    " #698c5a", " #553630",
+    " #698c5a", "rgb(100, 64, 57)",
     " #5d275d"
 ];
 var ntfyJson;
@@ -906,7 +906,7 @@ function changeCss() {
     }
     widthLimit = coloumnSet * 150 + (coloumnSet * (window.innerHeight / 100));
     if (window.innerWidth < widthLimit || document.cookie.includes("Two=1")) {
-        if (list3.length) { for (let i = 0; i < list3.length; ++i) { list3[i].style.cssText = "display: grid; grid-template-columns: auto auto;"; } }
+        if (list3.length) { for (let i = 0; i < list3.length; ++i) { list3[i].style.setProperty('grid-template-columns', 'auto auto'); } }
         if (bigLength == 1 || (bigLength == 0 && numSet == 1)) {
             coloumnSet = 1
             y = x;
@@ -916,6 +916,7 @@ function changeCss() {
     };
 
     sList.style.setProperty('grid-template-columns', y, m);
+    for (let i = 0; i < list3.length; ++i) { list3[i].style.setProperty('grid-template-columns', y, m); }
 
     //calculate and add extra tiles
     if (numSet % coloumnSet != 0 && coloumnSet != 1) {
