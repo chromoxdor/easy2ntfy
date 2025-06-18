@@ -2,7 +2,7 @@ If you like my work consider a donation: [![donate](https://img.shields.io/badge
 
 # easy2ntfy
 
-A simple gateway for [ESPeasy](https://github.com/letscontrolit/ESPEasy) to receive commands through [ntfy](https://ntfy.sh/) and using [easyfetch](https://github.com/chromoxdor/easyfetch) trough the internet.
+A simple gateway for [ESPeasy](https://github.com/letscontrolit/ESPEasy) to receive commands through [ntfy](https://ntfy.sh/) and using [easyfetch_legacy](https://github.com/chromoxdor/easyfetch_legacy) trough the internet.
 
 Open easy2ntfy: https://raw.githack.com/chromoxdor/easy2ntfy/main/fetch.html
 
